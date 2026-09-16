@@ -1,0 +1,338 @@
+<title>매력도 라벨링 현황</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --surface-2:   #f3f2ee;
+    --ink:         #14140f;
+    --ink-2:       #52514e;
+    --ink-mute:    #898781;
+    --grid:        #e1e0d9;
+    --baseline:    #c3c2b7;
+    --border:      rgba(11,11,11,0.10);
+
+    --c-aihub:     #2a78d6; /* blue   */
+    --c-scut:      #eb6834; /* orange */
+    --c-male:      #1baf7a; /* aqua   */
+    --c-female:    #eda100; /* yellow */
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --surface-2: #232322;
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --ink-mute:  #898781;
+      --grid:      #2c2c2a;
+      --baseline:  #383835;
+      --border:    rgba(255,255,255,0.10);
+
+      --c-aihub:   #3987e5;
+      --c-scut:    #d95926;
+      --c-male:    #199e70;
+      --c-female:  #c98500;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:      #0d0d0d;
+    --surface:   #1a1a19;
+    --surface-2: #232322;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --ink-mute:  #898781;
+    --grid:      #2c2c2a;
+    --baseline:  #383835;
+    --border:    rgba(255,255,255,0.10);
+
+    --c-aihub:   #3987e5;
+    --c-scut:    #d95926;
+    --c-male:    #199e70;
+    --c-female:  #c98500;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    background:var(--page);
+    color:var(--ink);
+    font-family:"IBM Plex Sans KR","Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    display:flex;
+    flex-direction:column;
+    gap:32px;
+  }
+
+  header{ display:flex; flex-direction:column; gap:6px; }
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-mute);
+  }
+  h1{
+    margin:0;
+    font-size:28px;
+    font-weight:700;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    margin:0;
+    color:var(--ink-2);
+    font-size:14px;
+    max-width:65ch;
+  }
+
+  /* ---- hero total ---- */
+  .hero{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    padding:24px 28px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+  }
+  .hero .value{
+    font-family:"IBM Plex Mono",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:44px;
+    font-weight:600;
+    letter-spacing:-0.02em;
+  }
+  .hero .label{
+    color:var(--ink-2);
+    font-size:14px;
+  }
+  .hero .breakdown{
+    margin-left:auto;
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .hero .breakdown div{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:var(--ink-2);
+    white-space:nowrap;
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+
+  /* ---- dataset cards ---- */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:2px;
+    background:var(--border);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .card{
+    background:var(--surface);
+    padding:18px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .card .name{
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .card .count{
+    font-family:"IBM Plex Mono",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:26px;
+    font-weight:600;
+  }
+  .card .scale{
+    font-size:12px;
+    color:var(--ink-mute);
+  }
+
+  /* ---- charts ---- */
+  section h2{
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  section .note{
+    margin:0 0 16px;
+    font-size:13px;
+    color:var(--ink-2);
+  }
+  .charts{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+    gap:16px;
+  }
+  .chart-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px 12px;
+  }
+  .chart-card .head{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:2px;
+  }
+  .chart-card .head .name{ font-size:14px; font-weight:600; }
+  .chart-card .head .total{
+    margin-left:auto;
+    font-family:"IBM Plex Mono",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:12px;
+    color:var(--ink-mute);
+  }
+  .chart-card svg{ display:block; width:100%; height:auto; overflow:visible; }
+  .bar{ transition:opacity .12s ease; cursor:default; }
+  .bar:hover{ opacity:0.72; }
+  .bar-label{
+    font-family:"IBM Plex Mono",monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:11px;
+    fill:var(--ink-2);
+  }
+  .axis-label{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    fill:var(--ink-mute);
+  }
+  .gridline{ stroke:var(--grid); stroke-width:1; }
+  .baseline{ stroke:var(--baseline); stroke-width:1; }
+
+  footer{
+    font-size:12px;
+    color:var(--ink-mute);
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Facial Attractiveness Labeling &middot; Dataset Report</div>
+    <h1>매력도 라벨링 현황</h1>
+    <p class="sub">AI Hub 발화 이미지, SCUT-FBP5500, 남녀 연예인 커스텀 데이터셋 4개를 통합한 라벨링 결과 요약입니다.</p>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="value" id="grand-total">0</div>
+      <div class="label">총 라벨링 이미지</div>
+    </div>
+    <div class="breakdown" id="hero-breakdown"></div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <section>
+    <h2>데이터셋별 점수 분포</h2>
+    <p class="note">데이터셋마다 원래 점수 스케일이 달라 (AI Hub 1~10점, 나머지 1~5점) 차트별로 x축 범위를 따로 표시했습니다.</p>
+    <div class="charts" id="charts"></div>
+  </section>
+
+  <footer>combined/labels_combined.xlsx 기준 &middot; 4개 데이터셋, 총 4,858건</footer>
+</div>
+
+<script>
+const DATA = {
+  aihub:        { label: "AI Hub",       color: "var(--c-aihub)",  scale: [1,10], counts: {1:61,2:133,3:143,4:105,5:55,6:55,7:34,8:14,9:4,10:2} },
+  scut_fbp5500: { label: "SCUT-FBP5500", color: "var(--c-scut)",   scale: [1,5],  counts: {1:27,2:1033,3:1923,4:997,5:20} },
+  male_celeb:   { label: "남자연예인",     color: "var(--c-male)",   scale: [1,5],  counts: {1:0,2:0,3:18,4:51,5:20} },
+  female_celeb: { label: "여자연예인",     color: "var(--c-female)", scale: [1,5],  counts: {1:6,2:4,3:19,4:68,5:66} },
+};
+
+function total(counts){
+  return Object.values(counts).reduce((a,b)=>a+b, 0);
+}
+
+const grandTotal = Object.values(DATA).reduce((sum, d) => sum + total(d.counts), 0);
+document.getElementById("grand-total").textContent = grandTotal.toLocaleString();
+
+const heroEl = document.getElementById("hero-breakdown");
+const cardsEl = document.getElementById("cards");
+Object.values(DATA).forEach(d => {
+  const t = total(d.counts);
+  heroEl.insertAdjacentHTML("beforeend",
+    `<div><span class="dot" style="background:${d.color}"></span>${d.label} ${t.toLocaleString()}</div>`);
+  cardsEl.insertAdjacentHTML("beforeend", `
+    <div class="card">
+      <div class="name"><span class="dot" style="background:${d.color}"></span>${d.label}</div>
+      <div class="count">${t.toLocaleString()}</div>
+      <div class="scale">${d.scale[0]}~${d.scale[1]}점 스케일</div>
+    </div>`);
+});
+
+function buildChart(d){
+  const scores = [];
+  for (let s = d.scale[0]; s <= d.scale[1]; s++) scores.push(s);
+  const values = scores.map(s => d.counts[s] || 0);
+  const max = Math.max(...values, 1);
+
+  const W = 520, H = 200;
+  const padL = 34, padR = 8, padT = 10, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const barGap = 10;
+  const barW = (plotW - barGap * (scores.length - 1)) / scores.length;
+
+  const ticks = 4;
+  let gridSvg = "";
+  for (let i = 0; i <= ticks; i++){
+    const v = Math.round((max / ticks) * i);
+    const y = padT + plotH - (v / max) * plotH;
+    gridSvg += `<line class="gridline" x1="${padL}" x2="${W-padR}" y1="${y}" y2="${y}"/>`;
+    gridSvg += `<text class="axis-label" x="${padL-6}" y="${y+3}" text-anchor="end">${v}</text>`;
+  }
+
+  let barsSvg = "";
+  scores.forEach((s, i) => {
+    const v = values[i];
+    const barH = max ? (v / max) * plotH : 0;
+    const x = padL + i * (barW + barGap);
+    const y = padT + plotH - barH;
+    barsSvg += `<rect class="bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH,0).toFixed(1)}" rx="3" fill="${d.color}"><title>${s}점: ${v}건</title></rect>`;
+    if (v > 0) {
+      barsSvg += `<text class="bar-label" x="${(x+barW/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle">${v}</text>`;
+    }
+    barsSvg += `<text class="axis-label" x="${(x+barW/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${s}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${d.label} 점수 분포">
+    ${gridSvg}
+    <line class="baseline" x1="${padL}" x2="${W-padR}" y1="${padT+plotH}" y2="${padT+plotH}"/>
+    ${barsSvg}
+  </svg>`;
+}
+
+const chartsEl = document.getElementById("charts");
+Object.values(DATA).forEach(d => {
+  const t = total(d.counts);
+  chartsEl.insertAdjacentHTML("beforeend", `
+    <div class="chart-card">
+      <div class="head">
+        <span class="dot" style="background:${d.color}"></span>
+        <span class="name">${d.label}</span>
+        <span class="total">${t.toLocaleString()}건</span>
+      </div>
+      ${buildChart(d)}
+    </div>`);
+});
+</script>
