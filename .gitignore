@@ -1,1 +1,14 @@
 ~$*
+
+# classical_cv
+classical_cv/models/*.yaml
+classical_cv/models/*.dat
+classical_cv/models/*.xml
+classical_cv/data/*.npz
+classical_cv/results/*.npz
+classical_cv/results/*.png
+__pycache__/
+*.pyc
+classical_cv/build/
+classical_cv/dist/
+classical_cv/*.spec
