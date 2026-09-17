@@ -1,10 +1,16 @@
-import { modelInfo } from "./model.js";
+import { predictImage } from "./model.js";
 const $ = (id) => document.getElementById(id);
 const fileInput = $("file"), photo = $("photo"), dialog = $("camera-dialog"), video = $("video");
+let selectedBlob = null, busy = false;
 let imageUrl = null, stream = null, version = 0, cameraVersion = 0, selectedName = "";
 const MAX_BYTES = 10 * 1024 * 1024, MAX_PIXELS = 20_000_000;
 function status(message = "") { $("status").textContent = message; }
+function resetResult() {
+  $('result').hidden = true;
+  $('score').textContent = '—';
+}
 function clearPhoto() {
+  selectedBlob = null; resetResult();
   version++;
   if (imageUrl) URL.revokeObjectURL(imageUrl);
   imageUrl = null; photo.removeAttribute("src"); selectedName = "";
@@ -13,6 +19,7 @@ function clearPhoto() {
 }
 async function selectPhoto(blob, name) {
   const token = ++version;
+  selectedBlob = null; resetResult(); $('analyze').disabled = true;
   status("사진을 확인하고 있어요…");
   if (!blob.size || blob.size > MAX_BYTES) { status("10MB 이하의 사진을 선택해주세요."); return; }
   const url = URL.createObjectURL(blob), probe = new Image();
@@ -21,13 +28,13 @@ async function selectPhoto(blob, name) {
     if (token !== version) { URL.revokeObjectURL(url); return; }
     if (!probe.naturalWidth || probe.naturalWidth * probe.naturalHeight > MAX_PIXELS) throw new Error("사진이 너무 커요. 2,000만 화소 이하로 줄여주세요.");
     if (imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl = url; selectedName = name; photo.src = url;
+    selectedBlob = blob; imageUrl = url; selectedName = name; photo.src = url;
     $("filename").textContent = name;
     $("dimensions").textContent = probe.naturalWidth + " × " + probe.naturalHeight;
     $("hero").hidden = true; $("photo-panel").hidden = false; $("selected-actions").hidden = false;
     $("upload-label").textContent = "다른 사진 선택하기";
-    $("analyze").disabled = !modelInfo.ready;
-    status("사진 준비 완료 · DenseNet121 연결 예정");
+    $("analyze").disabled = busy;
+    status("사진 준비 완료 · 점수 확인을 눌러주세요.");
   } catch (error) {
     URL.revokeObjectURL(url);
     if (token === version) status(error.message?.includes("화소") ? error.message : "사진을 읽을 수 없어요. JPG, PNG 또는 WebP 파일로 다시 선택해주세요.");
@@ -93,3 +100,24 @@ $("download").addEventListener("click", () => {
 });
 window.addEventListener("pagehide", () => { stopCamera(); if (imageUrl) URL.revokeObjectURL(imageUrl); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && dialog.open) dialog.close(); });
+
+$('analyze').addEventListener('click', async () => {
+  if (!selectedBlob || busy) return;
+  const token = version;
+  busy = true; $('analyze').disabled = true;
+  $('analyze').textContent = '분석 중…'; resetResult();
+  status('DenseNet121이 사진을 분석하고 있어요…');
+  try {
+    const result = await predictImage(selectedBlob);
+    if (token !== version) return;
+    $('score').textContent = result.score.toFixed(2);
+    $('score-meter').value = result.score;
+    $('result').hidden = false;
+    status('분석 완료');
+  } catch (error) {
+    if (token === version) status(error.message);
+  } finally {
+    busy = false; $('analyze').disabled = !selectedBlob;
+    $('analyze').textContent = '점수 확인';
+  }
+});
