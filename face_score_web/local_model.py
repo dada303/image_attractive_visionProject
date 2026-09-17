@@ -9,6 +9,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 import torch
 from torchvision import transforms, models
 from torch import nn
+from face_crop import CropService
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
@@ -93,6 +94,7 @@ MODEL_IDS = ('densenet121', 'mobilenetv3', 'efficientnet_b0')
 
 class ModelRegistry:
     def __init__(self, checkpoint=None, model_ids=MODEL_IDS):
+        self.crops = CropService()
         self.model_ids = tuple(dict.fromkeys(model_ids))
         self.scorers = {}
         self.errors = {}
@@ -115,3 +117,7 @@ class ModelRegistry:
         if model_id not in self.scorers:
             raise ValueError('선택한 모델을 사용할 수 없습니다. 모델 파일과 설정을 확인해주세요.')
         return self.scorers[model_id].predict(data)
+
+    def predict_crop(self, data, token, model_id='densenet121'):
+        self.crops.verify(data, token)
+        return self.predict(data, model_id)

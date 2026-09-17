@@ -28,15 +28,17 @@ class LocalAppTests(unittest.TestCase):
         cls.thread.join()
 
     def request(self, route, data=None, **headers):
+        headers = {'Content-Type':'application/octet-stream', 'X-Filename':'photo.png', **headers}
         return urlopen(Request(self.url + route, data=data, headers=headers), timeout=30)
 
     def test_real_image_matches_direct_inference(self):
         photo = next((PROJECT / 'test_photo_9').glob('*.png'))
-        data = photo.read_bytes()
+        with self.request('/api/crop', photo.read_bytes()) as response:
+            data = response.read(); token = response.headers['X-Crop-Token']
         for model_id in ('densenet121', 'mobilenetv3', 'efficientnet_b0'):
             with self.subTest(model=model_id):
                 direct = self.scorer.predict(data, model_id)
-                with self.request('/api/predict?model=' + model_id, data) as response:
+                with self.request('/api/predict?model=' + model_id, data, **{'X-Crop-Token':token}) as response:
                     result = json.load(response)
                 self.assertEqual(result['model_id'], model_id)
                 self.assertAlmostEqual(result['raw_score'], direct['raw_score'], places=6)
@@ -47,10 +49,10 @@ class LocalAppTests(unittest.TestCase):
                     self.assertAlmostEqual(result['score'], 1 + 4 / (1 + math.exp(-result['raw_score'])), places=5)
                 print(f"{model_id}: {result['score']:.4f}")
 
-    def test_unknown_model_rejected(self):
+    def test_unsigned_prediction_rejected(self):
         with self.assertRaises(HTTPError) as caught:
             self.request('/api/predict?model=unknown', b'data')
-        self.assertEqual(caught.exception.code, 400)
+        self.assertEqual(caught.exception.code, 409)
 
     def test_models_list(self):
         with self.request('/api/models') as response:
@@ -60,7 +62,7 @@ class LocalAppTests(unittest.TestCase):
 
     def test_invalid_image(self):
         with self.assertRaises(HTTPError) as caught:
-            self.request('/api/predict', b'not an image')
+            self.request('/api/crop', b'not an image')
         self.assertEqual(caught.exception.code, 400)
 
     def test_foreign_origin_rejected(self):
@@ -78,9 +80,9 @@ class LocalAppTests(unittest.TestCase):
         with self.request('/api/health') as response:
             self.assertTrue(json.load(response)['ready'])
         with self.request('/') as response:
-            self.assertIn('점수 확인', response.read().decode('utf-8'))
+            self.assertIn('결과 보기', response.read().decode('utf-8'))
         with self.request('/js/app.js') as response:
-            self.assertIn('predictImage(selectedBlob, modelId, selectedName)', response.read().decode('utf-8'))
+            self.assertIn('predictImage(selectedBlob, modelId, cropToken, predictionController.signal)', response.read().decode('utf-8'))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

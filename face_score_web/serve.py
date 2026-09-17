@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 import traceback
+from face_crop import CropError, validate_upload
 from local_model import DEFAULT_CHECKPOINT, MAX_BYTES, ModelRegistry
 
 FRONTEND = Path(__file__).resolve().parent / 'frontend'
@@ -48,7 +49,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if not self.local_request():
             return
-        if urlsplit(self.path).path != '/api/predict':
+        if urlsplit(self.path).path not in ('/api/crop', '/api/predict'):
             self.respond(404, {'error': '없는 API입니다.'})
             return
         try:
@@ -59,12 +60,29 @@ class Handler(SimpleHTTPRequestHandler):
         if not 0 < length <= MAX_BYTES:
             self.respond(413, {'error': '10MB 이하의 사진을 선택해주세요.'})
             return
+        try:
+            validate_upload(self.headers.get('X-Filename'), self.headers.get('Content-Type'), length)
+        except CropError as error:
+            self.respond(error.status, {'error': str(error)})
+            return
         self.connection.settimeout(30)
         try:
             data = self.rfile.read(length)
             if len(data) != length:
                 raise ValueError('사진 전송이 완료되지 않았습니다.')
-            self.respond(200, self.scorer.predict(data, parse_qs(urlsplit(self.path).query).get('model', ['densenet121'])[0]))
+            if urlsplit(self.path).path == '/api/crop':
+                png, token, metadata = self.scorer.crops.prepare(data)
+                self.send_response(200)
+                self.send_header('Content-Type', 'image/png')
+                self.send_header('Content-Length', str(len(png)))
+                self.send_header('X-Crop-Token', token)
+                self.send_header('X-Face-Count', str(metadata['face_count']))
+                self.end_headers()
+                self.wfile.write(png)
+            else:
+                self.respond(200, self.scorer.predict_crop(data, self.headers.get('X-Crop-Token'), parse_qs(urlsplit(self.path).query).get('model', ['densenet121'])[0]))
+        except CropError as exc:
+            self.respond(exc.status, {'error': str(exc)})
         except ValueError as exc:
             self.respond(400, {'error': str(exc)})
         except TimeoutError:

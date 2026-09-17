@@ -23,7 +23,7 @@
 <circle cx="277" cy="56" r="5" fill="none" stroke="#a67e5d" stroke-width="2"/>
 </svg>
 </div>
-<div id="photo-panel" class="photo-panel" hidden><img id="photo" alt="선택한 사진 미리보기"><span class="photo-tag">선택한 이미지</span><button id="remove" class="icon-button" aria-label="사진 삭제" title="사진 삭제">×</button><div class="photo-bottom"><span id="filename"></span><span id="dimensions"></span></div></div>
+<div id="photo-panel" class="photo-panel" hidden><img id="photo" alt="모델에 전달할 얼굴 Crop 미리보기"><span class="photo-tag">얼굴 Crop</span><button id="remove" class="icon-button" aria-label="사진 삭제" title="사진 삭제">×</button><div class="photo-bottom"><span id="filename"></span><span id="dimensions"></span></div></div>
 <div class="studio-foot"><span class="small-dot"></span><span id="studio-caption">정면 얼굴 사진 · 한 사람</span></div>
 </section>
 <section id="result" class="result-card" aria-live="polite" hidden>
@@ -37,8 +37,9 @@
 <input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
 <button id="upload" class="button primary"><span class="button-icon">↥</span><span id="upload-label">사진 선택하기</span><span class="arrow">↗</span></button>
 <button id="camera" class="button secondary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l2-3h4l2 3h4v14H4V6z"/><circle cx="12" cy="12" r="4"/></svg>카메라로 촬영하기</button>
-<div id="selected-actions" hidden><button id="analyze" class="button analyze" disabled>점수 확인</button><button id="download" class="text-button">선택한 사진 PNG로 저장 <span>↓</span></button></div>
+<div id="selected-actions"><button id="analyze" class="button analyze" disabled>결과 보기</button><button id="download" class="text-button" disabled>Crop 이미지 PNG로 저장 <span>↓</span></button></div>
 </section>
+<p class="crop-help">얼굴이 올바르게 인식되지 않았다면 다른 사진을 첨부해 주세요.</p>
 <div class="privacy"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="8" width="10" height="9" rx="2"/><path d="M7 8V5a3 3 0 016 0v3"/></svg><span>사진은 서버에서 분석 후 보관하지 않습니다.</span></div>
 
 <footer><span>스마트팩토리 과정</span><span>2조 · 머신 비전 프로젝트</span></footer>

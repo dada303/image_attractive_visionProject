@@ -14,12 +14,13 @@ class ProductionTests(unittest.TestCase):
         with patch.dict(os.environ, {'PORT': '8767', 'PUBLIC_ORIGIN': 'https://face.example.com', 'DEFAULT_MODEL': 'efficientnet_b0'}):
             cls.app = create_app(cls.registry)
         cls.client = cls.app.test_client()
-        cls.data = (PROJECT / 'test_photo_9' / 'F_2.png').read_bytes()
+        cls.original = (PROJECT / 'test_photo_9' / 'F_2.png').read_bytes()
+        cls.data, cls.token, _ = cls.registry.crops.prepare(cls.original)
 
     def predict(self, data=None, filename='한글사진.png', **kwargs):
         return self.client.post('/api/predict', base_url='https://face.example.com',
             data=self.data if data is None else data,
-            headers={'X-Filename': quote(filename), 'Origin': 'https://face.example.com'},
+            headers={'X-Filename': quote(filename), 'Origin': 'https://face.example.com', 'X-Crop-Token': self.token},
             content_type='application/octet-stream', **kwargs)
 
     def test_public_https_and_default_efficientnet(self):
@@ -36,7 +37,7 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual(self.client.get('/', base_url='https://evil.example').status_code, 403)
         self.assertEqual(self.client.post('/api/predict', base_url='https://face.example.com', headers={'Origin':'https://evil.example'}).status_code, 403)
         self.assertEqual(self.predict(filename='x.exe').status_code, 400)
-        self.assertEqual(self.predict(data=b'broken').status_code, 400)
+        self.assertEqual(self.predict(data=b'broken').status_code, 409)
         self.assertEqual(self.predict(data=b'x' * (MAX_BYTES + 1)).status_code, 413)
 
     def test_only_frontend_is_public(self):
@@ -52,6 +53,16 @@ class ProductionTests(unittest.TestCase):
         result = app.test_client().get('/api/models', base_url='http://localhost:8767').json
         self.assertEqual([m['id'] for m in result['models']], ['efficientnet_b0'])
 
+    def test_crop_never_predicts_and_raw_cannot_predict(self):
+        with patch.object(self.registry, 'predict', wraps=self.registry.predict) as predict:
+            response = self.client.post('/api/crop', base_url='https://face.example.com', data=self.original,
+                content_type='application/octet-stream', headers={'X-Filename':'camera.png'})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, 'image/png')
+            predict.assert_not_called()
+            self.assertEqual(self.predict(data=self.original).status_code, 409)
+            predict.assert_not_called()
+
     def test_busy_response(self):
         import threading
         entered, release = threading.Event(), threading.Event()
@@ -64,7 +75,7 @@ class ProductionTests(unittest.TestCase):
         with patch.object(self.registry, 'predict', side_effect=slow):
             def work():
                 with self.app.test_client() as client:
-                    responses.append(client.post('/api/predict', base_url='https://face.example.com', data=self.data, content_type='application/octet-stream', headers={'X-Filename':'a.png'}).status_code)
+                    responses.append(client.post('/api/predict', base_url='https://face.example.com', data=self.data, content_type='application/octet-stream', headers={'X-Filename':'a.png', 'X-Crop-Token':self.token}).status_code)
             thread = threading.Thread(target=work)
             thread.start()
             try:

@@ -5,8 +5,9 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from urllib.parse import unquote, urlsplit
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
+from face_crop import CropError, validate_upload
 from local_model import MAX_BYTES, MODEL_IDS, ModelRegistry
 
 FRONTEND = Path(__file__).resolve().parent / 'frontend'
@@ -63,31 +64,33 @@ def create_app(registry=None):
     def health():
         return jsonify(ready=True, default_model=default_model, models=registry.list_models())
 
+    @app.post('/api/crop')
     @app.post('/api/predict')
-    def predict():
-        model_id = request.args.get('model', default_model)
-        if model_id not in registry.scorers:
-            return jsonify(error='사용할 수 없는 모델입니다.'), 400
-        filename = unquote(request.headers.get('X-Filename', ''))
-        if Path(filename).suffix.lower() not in {'.jpg', '.jpeg', '.png', '.webp'}:
-            return jsonify(error='JPG, PNG, WebP 확장자의 사진을 선택해주세요.'), 400
-        if request.mimetype != 'application/octet-stream':
-            return jsonify(error='이미지 바이너리 요청이 필요합니다.'), 415
-        if not request.content_length:
-            return jsonify(error='빈 이미지입니다.'), 400
-        if request.content_length > MAX_BYTES:
-            return jsonify(error='10MB 이하의 사진을 선택해주세요.'), 413
-        if not inference_slot.acquire(blocking=False):
-            return jsonify(error='다른 사진을 분석 중입니다. 잠시 후 다시 시도해주세요.'), 429
+    def process_image():
         try:
-            # Decoder verifies actual bytes; filename is never used as a disk path.
-            result = registry.predict(request.get_data(cache=False), model_id)
+            validate_upload(request.headers.get('X-Filename'), request.content_type, request.content_length)
+        except CropError as error:
+            return jsonify(error=str(error)), error.status
+        if not inference_slot.acquire(blocking=False):
+            return jsonify(error='다른 사진을 처리 중입니다. 잠시 후 다시 시도해주세요.'), 429
+        try:
+            data = request.get_data(cache=False)
+            if request.path == '/api/crop':
+                png, token, metadata = registry.crops.prepare(data)
+                response = Response(png, mimetype='image/png')
+                response.headers['X-Crop-Token'] = token
+                response.headers['X-Face-Count'] = str(metadata['face_count'])
+                return response
+            model_id = request.args.get('model', default_model)
+            result = registry.predict_crop(data, request.headers.get('X-Crop-Token'), model_id)
             return jsonify(result)
+        except CropError as error:
+            return jsonify(error=str(error)), error.status
         except ValueError as error:
             return jsonify(error=str(error)), 400
         except Exception:
-            app.logger.exception('Inference failed')
-            return jsonify(error='예측에 실패했습니다. 잠시 후 다시 시도해주세요.'), 500
+            app.logger.exception('Image processing failed')
+            return jsonify(error='이미지 처리에 실패했습니다. 잠시 후 다시 시도해주세요.'), 500
         finally:
             inference_slot.release()
 

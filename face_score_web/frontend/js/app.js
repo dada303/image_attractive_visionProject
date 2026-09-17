@@ -1,49 +1,60 @@
-import { predictImage } from "./model.js";
+import { cropImage, predictImage } from "./model.js";
 const $ = (id) => document.getElementById(id);
 const fileInput = $("file"), photo = $("photo"), dialog = $("camera-dialog"), video = $("video");
-let selectedBlob = null, busy = false, modelsReady = false;
+let selectedBlob = null, cropToken = null, busy = false, modelsReady = false;
+let cropController = null, predictionController = null, modelVersion = 0;
 let imageUrl = null, stream = null, version = 0, cameraVersion = 0, selectedName = "";
 const MAX_BYTES = 10 * 1024 * 1024, MAX_PIXELS = 20_000_000;
 function status(message = "") { $("status").textContent = message; }
 function resetResult() {
   $('result').hidden = true;
   $('score').textContent = '—';
+  $('score-meter').value = 1; $('result-model').textContent = '';
 }
 function clearPhoto() {
-  selectedBlob = null; resetResult();
   version++;
+  cropController?.abort(); predictionController?.abort();
+  cropController = null; predictionController = null;
+  selectedBlob = null; cropToken = null; busy = false; resetResult();
   if (imageUrl) URL.revokeObjectURL(imageUrl);
-  imageUrl = null; photo.removeAttribute("src"); selectedName = "";
-  $("hero").hidden = false; $("photo-panel").hidden = true; $("selected-actions").hidden = true;
-  $("upload-label").textContent = "사진 선택하기"; fileInput.value = ""; status();
+  imageUrl = null; photo.removeAttribute('src'); selectedName = '';
+  $('filename').textContent = ''; $('dimensions').textContent = '';
+  $('hero').hidden = false; $('photo-panel').hidden = true;
+  $('analyze').disabled = true; $('analyze').textContent = '결과 보기';
+  $('download').disabled = true;
+  $('upload-label').textContent = '사진 선택하기'; fileInput.value = ''; status();
 }
 async function selectPhoto(blob, name) {
-  const token = ++version;
-  selectedBlob = null; resetResult(); $('analyze').disabled = true;
-  status("사진을 확인하고 있어요…");
-  if (!blob.size || blob.size > MAX_BYTES) { status("10MB 이하의 사진을 선택해주세요."); return; }
-  const url = URL.createObjectURL(blob), probe = new Image();
+  clearPhoto();
+  const token = version;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) { status('JPG, PNG, WebP 사진을 선택해주세요.'); return; }
+  if (!blob.size || blob.size > MAX_BYTES) { status('10MB 이하의 사진을 선택해주세요.'); return; }
+  cropController = new AbortController();
+  status('얼굴 인식 중…');
+  let url = null;
   try {
-    probe.src = url; await probe.decode();
+    const crop = await cropImage(blob, name, cropController.signal);
+    if (token !== version) return;
+    url = URL.createObjectURL(crop.blob);
+    const probe = new Image(); probe.src = url; await probe.decode();
     if (token !== version) { URL.revokeObjectURL(url); return; }
-    if (!probe.naturalWidth || probe.naturalWidth * probe.naturalHeight > MAX_PIXELS) throw new Error("사진이 너무 커요. 2,000만 화소 이하로 줄여주세요.");
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-    selectedBlob = blob; imageUrl = url; selectedName = name; photo.src = url;
-    $("filename").textContent = name;
-    $("dimensions").textContent = probe.naturalWidth + " × " + probe.naturalHeight;
-    $("hero").hidden = true; $("photo-panel").hidden = false; $("selected-actions").hidden = false;
-    $("upload-label").textContent = "다른 사진 선택하기";
-    $("analyze").disabled = busy || !modelsReady;
-    status("사진 준비 완료 · 점수 확인을 눌러주세요.");
+    // This exact lossless PNG blob is BOTH displayed and posted to predict.
+    selectedBlob = crop.blob; cropToken = crop.token;
+    imageUrl = url; selectedName = name; photo.src = imageUrl;
+    $('filename').textContent = name;
+    $('dimensions').textContent = probe.naturalWidth + ' × ' + probe.naturalHeight;
+    $('hero').hidden = true; $('photo-panel').hidden = false;
+    $('upload-label').textContent = '다른 사진 선택하기';
+    $('analyze').disabled = !modelsReady; $('download').disabled = false;
+    status((crop.faceCount > 1 ? '여러 얼굴 중 가장 큰 얼굴을 선택했습니다. ' : '') + 'Crop을 확인한 후 결과 보기를 눌러주세요.');
   } catch (error) {
-    URL.revokeObjectURL(url);
-    if (token === version) status(error.message?.includes("화소") ? error.message : "사진을 읽을 수 없어요. JPG, PNG 또는 WebP 파일로 다시 선택해주세요.");
+    if (url) URL.revokeObjectURL(url);
+    if (token === version && error.name !== 'AbortError') status(error.message);
   }
 }
 $("upload").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
   const file = fileInput.files[0]; if (!file) return;
-  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) { status("JPG, PNG, WebP 사진을 선택해주세요."); fileInput.value = ""; return; }
   selectPhoto(file, file.name); fileInput.value = "";
 });
 $("remove").addEventListener("click", clearPhoto);
@@ -78,57 +89,56 @@ $("capture").addEventListener("click", () => {
   if (!video.videoWidth || !video.videoHeight) return;
   const canvas = document.createElement("canvas"); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   canvas.getContext("2d").drawImage(video, 0, 0);
+  clearPhoto();
   const token = version;
   $("capture").disabled = true;
   canvas.toBlob((blob) => {
     dialog.close();
-    if (blob && token === version) selectPhoto(blob, "camera-" + Date.now() + ".jpg");
-  }, "image/jpeg", .92);
-});
-$("download").addEventListener("click", () => {
-  if (!imageUrl || !photo.naturalWidth) return;
-  const canvas = document.createElement("canvas"); const ratio = Math.min(1, 1600 / Math.max(photo.naturalWidth, photo.naturalHeight));
-  canvas.width = Math.round(photo.naturalWidth * ratio); canvas.height = Math.round(photo.naturalHeight * ratio);
-  canvas.getContext("2d").drawImage(photo, 0, 0, canvas.width, canvas.height);
-  canvas.toBlob((blob) => {
-    if (!blob) { status("이미지 저장에 실패했어요. 다시 시도해주세요."); return; }
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = "face-note-" + (selectedName.replace(/\.[^.]+$/, "") || "photo") + ".png";
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    status("사진을 PNG로 저장했습니다.");
+    if (blob && token === version) selectPhoto(blob, "camera-" + Date.now() + ".png");
   }, "image/png");
+});
+$('download').addEventListener('click', () => {
+  if (!imageUrl || !selectedBlob) return;
+  const a = document.createElement('a');
+  a.href = imageUrl; a.download = 'face-crop-' + (selectedName.replace(/\.[^.]+$/, '') || 'photo') + '.png';
+  document.body.append(a); a.click(); a.remove();
+  status('확인한 Crop 이미지를 PNG로 저장했습니다.');
 });
 window.addEventListener("pagehide", () => { stopCamera(); if (imageUrl) URL.revokeObjectURL(imageUrl); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && dialog.open) dialog.close(); });
 
 $('analyze').addEventListener('click', async () => {
   if (!selectedBlob || busy || !modelsReady) return;
-  const token = version;
+  const token = version, currentModelVersion = modelVersion;
+  predictionController = new AbortController();
   const modelId = $('model-select').value;
   const modelLabel = $('model-select').selectedOptions[0].textContent;
   busy = true; $('analyze').disabled = true;
   $('analyze').textContent = '분석 중…'; resetResult();
   status(modelLabel + ' 모델이 사진을 분석하고 있어요…');
   try {
-    const result = await predictImage(selectedBlob, modelId, selectedName);
-    if (token !== version) return;
+    const result = await predictImage(selectedBlob, modelId, cropToken, predictionController.signal);
+    if (token !== version || currentModelVersion !== modelVersion) return;
     $('score').textContent = result.score.toFixed(2);
     $('score-meter').value = result.score;
     $('result-model').textContent = result.model + ' · AI 예측 점수';
     $('result').hidden = false;
     status('분석 완료');
   } catch (error) {
-    if (token === version) status(error.message);
+    if (token === version && currentModelVersion === modelVersion && error.name !== 'AbortError') status(error.message);
   } finally {
-    busy = false; $('analyze').disabled = !selectedBlob || !modelsReady;
-    $('analyze').textContent = '점수 확인';
+    if (token === version && currentModelVersion === modelVersion) {
+      busy = false; $('analyze').disabled = !selectedBlob || !modelsReady;
+      $('analyze').textContent = '결과 보기';
+    }
   }
 });
 
 $('model-select').addEventListener('change', () => {
-  version++; resetResult();
+  modelVersion++; predictionController?.abort(); busy = false; resetResult();
+  $('analyze').disabled = !selectedBlob || !modelsReady; $('analyze').textContent = '결과 보기';
   $('model-badge').textContent = $('model-select').selectedOptions[0].textContent;
-  status(selectedBlob ? '모델 변경 완료 · 점수 확인을 눌러주세요.' : '');
+  status(selectedBlob ? '모델 변경 완료 · 결과 보기를 눌러주세요.' : '');
 });
 async function loadModels() {
   try {

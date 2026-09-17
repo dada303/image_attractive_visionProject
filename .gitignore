@@ -44,3 +44,6 @@ cloudflared*.yml
 /tmp/
 /.idea/
 /.omx/
+/TestPicture/
+/test_labels_1to5.xlsx
+/EfficientNet-B0/outputs/
