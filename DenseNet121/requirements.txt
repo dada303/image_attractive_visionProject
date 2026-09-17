@@ -1,0 +1,15 @@
+# DenseNet121 얼굴 매력도(1~5점) 예측 모델 학습/추론에 필요한 패키지 목록
+# 설치: pip install -r requirements.txt
+# (CPU 전용 PyTorch를 사용하려면 아래 명령 사용을 권장합니다)
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+torch>=2.0
+torchvision>=0.15
+pandas>=2.0
+openpyxl>=3.1        # labels_combined_1to5.xlsx (엑셀) 파일을 읽기 위해 필요
+scikit-learn>=1.3    # train/val/test 분할, 회귀 성능 지표 계산
+scipy>=1.10           # 피어슨 상관계수 계산
+matplotlib>=3.7       # 학습 곡선 및 산점도 시각화
+opencv-python>=4.8    # 새 이미지 입력 시 얼굴 검출(Haar Cascade)
+pillow>=10.0
+tqdm>=4.65            # 학습 진행률 표시줄
