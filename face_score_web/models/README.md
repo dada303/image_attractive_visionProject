@@ -33,5 +33,5 @@ pt 파일은 Git에서 제외되므로 다른 PC로 옮길 때 별도로 복사�
 | MobileNetV3 | MobileNetV3 Large + Linear(1280,1) | 224×224 bilinear | 직접 회귀 | train_mobilenetv3_regression.ipynb |
 | EfficientNet-B0 | EfficientNet-B0 + Linear(1280,1) | 짧은 변 256 bicubic, 중앙 224 crop | 1 + 4 × sigmoid | 체크포인트 config |
 
-공통: EXIF 방향 보정, RGB, ImageNet 정규화, 화면 점수 1~5 범위 제한. 얼굴 자동 크롭은 하지 않습니다.
+공통: EXIF 방향 보정, RGB, ImageNet 정규화, 화면 점수 1~5 범위 제한. 웹 입력은 Haar 얼굴 Crop 확인 후 추론합니다.
 기존 manifest.template.json은 과거 브라우저 모델 연결용 참고 파일이며 로컬 추론에는 사용하지 않습니다.

@@ -18,7 +18,7 @@
 - RGB → 224×224 Resize → ToTensor → ImageNet 평균/표준편차 정규화
 - 평가 모드와 inference_mode 사용, 모델은 시작 시 한 번 로드
 - 모델 출력 원본은 API의 `raw_score`, 화면 표시 점수는 1~5 범위로 제한
-- 얼굴 자동 검출/크롭은 하지 않습니다. 한 사람의 정면 얼굴 사진을 선택하세요.
+- 웹 입력은 Haar 얼굴 Crop 확인 후 추론합니다. 한 사람의 정면 얼굴 사진을 선택하세요.
 - 점수는 학습 데이터 기준의 모델 예측값입니다.
 
 ## 로컬 구성
@@ -42,3 +42,7 @@
 ## 인터넷 배포
 
 Windows + Cloudflare Tunnel의 운영 실행, 설정 및 Git 점검 결과는 [DEPLOY_WINDOWS.md](DEPLOY_WINDOWS.md)를 참고하세요. 기존 로컬 실행은 8766, 운영 실행은 production.py의 8767 포트를 사용합니다.
+
+## 얼굴 Crop 확인
+
+사진 선택 즉시 얼굴 Crop만 수행하고 미리보기를 표시합니다. 사용자가 결과 보기를 눌러야 모델이 실행됩니다. API 계약·재사용 로직·테스트는 [CROP_FLOW.md](CROP_FLOW.md)를 참고하세요.

@@ -46,7 +46,7 @@ async function selectPhoto(blob, name) {
     $('hero').hidden = true; $('photo-panel').hidden = false;
     $('upload-label').textContent = '다른 사진 선택하기';
     $('analyze').disabled = !modelsReady; $('download').disabled = false;
-    status((crop.faceCount > 1 ? '여러 얼굴 중 가장 큰 얼굴을 선택했습니다. ' : '') + 'Crop을 확인한 후 결과 보기를 눌러주세요.');
+    status('Crop 상태를 확인한 후 결과 보기를 눌러주세요');
   } catch (error) {
     if (url) URL.revokeObjectURL(url);
     if (token === version && error.name !== 'AbortError') status(error.message);
