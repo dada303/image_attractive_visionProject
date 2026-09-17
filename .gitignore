@@ -12,3 +12,14 @@ __pycache__/
 classical_cv/build/
 classical_cv/dist/
 classical_cv/*.spec
+
+__pycache__/
+.venv/
+.env
+*.pt
+*.pth
+*.h5
+*.keras
+runtime/*
+!runtime/.gitkeep
+
