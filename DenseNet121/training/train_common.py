@@ -10,14 +10,22 @@
 import argparse
 import os
 import random
+import sys
 import time
 
 import numpy as np
 import torch
 import torch.nn as nn
 
-from .dataset import get_dataloaders
-from .engine import (
+# train_aihub.py/train_all.py를 "python train_aihub.py"처럼 직접 실행할 때도 이 파일과
+# dataset.py/engine.py/model.py를 문제없이 import할 수 있도록 DenseNet121/ 폴더를
+# sys.path에 넣어둔다 (predict.py, app_gui.py도 동일한 방식을 쓴다).
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from training.dataset import get_dataloaders
+from training.engine import (
     train_one_epoch,
     evaluate,
     save_checkpoint,
@@ -25,7 +33,7 @@ from .engine import (
     plot_training_curve,
     plot_scatter,
 )
-from .model import build_model
+from training.model import build_model
 
 # training/train_common.py -> training/ -> DenseNet121/ -> 프로젝트 루트 (3단계 상위)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

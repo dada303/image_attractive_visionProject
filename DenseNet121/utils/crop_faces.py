@@ -9,8 +9,13 @@
 
 import argparse
 import os
+import sys
 
-from ..inference.predict import detect_and_crop_face
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from inference.predict import detect_and_crop_face
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 

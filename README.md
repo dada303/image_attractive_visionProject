@@ -83,10 +83,11 @@ GPU 없이 로컬(CPU)에서도 돌아가도록 만든 별도 파이프라인입
 
 ### 코드 구성 (`DenseNet121/`)
 
-역할이 비슷한 코드끼리 하위 패키지로 묶어 두었습니다 (`__init__.py`가 있는 파이썬 패키지이며, 서로 상대 import로 연결되어 있습니다).
+역할이 비슷한 코드끼리 하위 패키지로 묶어 두었습니다. `app_gui.py`는 실제로 실행해서 쓰는 진입점이라 `DenseNet121/` 바로 아래에 두었고, 나머지는 역할별 하위 폴더에 있습니다.
 
 ```
 DenseNet121/
+├── app_gui.py      # 진입점 — 데스크톱 GUI (더블 실행 편의를 위해 최상위에 위치)
 ├── training/       # 데이터 준비 · 모델 정의 · 학습 루프
 │   ├── dataset.py
 │   ├── model.py
@@ -97,8 +98,7 @@ DenseNet121/
 ├── inference/      # 학습된 모델로 새 이미지를 예측 + 설명(XAI)
 │   ├── predict.py
 │   └── gradcam.py
-├── gui/            # 데스크톱 GUI · 결과 리포트
-│   ├── app_gui.py
+├── gui/            # GUI가 사용하는 결과 리포트 생성 로직
 │   └── html_report.py
 ├── utils/          # 독립 유틸리티 스크립트
 │   └── crop_faces.py
@@ -107,43 +107,42 @@ DenseNet121/
 
 | 파일 | 역할 |
 |---|---|
+| `app_gui.py` | 진입점 — tkinter 데스크톱 GUI (사진 선택 → 모델 선택 → 결과 표/Grad-CAM 확인 → HTML 저장) |
 | `training/model.py` | DenseNet121 백본 로딩 + 회귀용 출력층(1개) 교체 |
 | `training/dataset.py` | 라벨 엑셀 로딩, 이미지 존재 검증, train/val/test 층화 분할, `Dataset`/`DataLoader` 생성 |
 | `training/engine.py` | 1 epoch 학습/평가 루프, MAE·RMSE·Pearson r·정확도 계산, 체크포인트/지표/그래프 저장 |
 | `training/train_common.py` | `train_aihub.py`·`train_all.py`가 공유하는 CLI 인자 정의 + 전체 학습 루프(`run_training`) |
 | `training/train_aihub.py` | 진입점 — `dataset == "aihub"` 데이터만 사용해 학습 (`outputs/aihub/`) |
 | `training/train_all.py` | 진입점 — 4개 도메인 전체 데이터로 학습 (`outputs/all/`) |
-| `inference/predict.py` | 새 이미지 1장에 대해 얼굴 검출(Haar Cascade) → 크롭 → 학습된 모델로 점수 예측 (CLI 겸 공용 로직) |
+| `inference/predict.py` | 진입점 겸 공용 로직 — 새 이미지 1장에 대해 얼굴 검출(Haar Cascade) → 크롭 → 학습된 모델로 점수 예측 |
 | `inference/gradcam.py` | Grad-CAM으로 "모델이 얼굴의 어느 부위를 보고 점수를 매겼는지" 히트맵·설명 생성 |
 | `gui/html_report.py` | 여러 장을 한 번에 측정한 결과를 카드 그리드 형태의 단일 HTML 파일로 저장 |
-| `gui/app_gui.py` | tkinter 데스크톱 GUI (사진 선택 → 모델 선택 → 결과 표/Grad-CAM 확인 → HTML 저장) |
-| `utils/crop_faces.py` | 폴더 단위로 얼굴만 검출해 `cropped/` 하위 폴더에 저장하는 독립 유틸리티 |
+| `utils/crop_faces.py` | 진입점 — 폴더 단위로 얼굴만 검출해 `cropped/` 하위 폴더에 저장하는 독립 유틸리티 |
 | `requirements.txt` | 이 파이프라인 전용 의존성 목록 |
 
-`gui/app_gui.py`, `utils/crop_faces.py`를 제외한 모든 파일은 다른 파일에서 import되어 실제로 쓰이고 있으며, 점검 결과 사용되지 않는 코드(죽은 코드)는 없었습니다.
+`app_gui.py`, `utils/crop_faces.py`를 제외한 모든 파일은 다른 파일에서 import되어 실제로 쓰이고 있으며, 점검 결과 사용되지 않는 코드(죽은 코드)는 없었습니다.
 
 ### 실행 방법
 
-패키지 내부가 상대 import(`from .xxx import ...`)로 연결되어 있으므로, 반드시 **프로젝트 루트에서 `python -m` 방식**으로 실행해야 합니다 (`python DenseNet121/training/train_aihub.py`처럼 파일 경로로 직접 실행하면 import 오류가 납니다).
+각 진입점 파일은 실행 위치·방식과 무관하게 자기 위치를 기준으로 `DenseNet121/` 폴더를 찾아 `sys.path`에 등록한 뒤 나머지 모듈을 import하므로, 아래 두 방식 모두 그대로 동작합니다.
 
 ```bash
 pip install -r DenseNet121/requirements.txt
 
-# 학습 (결과는 프로젝트 루트 outputs/aihub, outputs/all 에 저장)
+# 방식 A: 파일 경로로 직접 실행 (더블클릭·IDE의 "실행" 버튼과 동일한 방식)
+python DenseNet121/app_gui.py
+python DenseNet121/training/train_aihub.py --epochs 7
+python DenseNet121/training/train_all.py --epochs 7
+python DenseNet121/inference/predict.py --image ./someone.jpg --model both
+python DenseNet121/utils/crop_faces.py --input-dir "./새사진폴더"
+
+# 방식 B: 프로젝트 루트에서 -m 모듈 방식 (동일하게 동작)
+python -m DenseNet121.app_gui
 python -m DenseNet121.training.train_aihub --epochs 7
-python -m DenseNet121.training.train_all --epochs 7
-
-# 예측 (두 모델 비교)
 python -m DenseNet121.inference.predict --image ./someone.jpg --model both
-
-# GUI (여러 장 선택 → 모델 비교 → HTML 리포트 저장)
-python -m DenseNet121.gui.app_gui
-
-# 폴더 단위 얼굴 크롭 유틸리티
-python -m DenseNet121.utils.crop_faces --input-dir "./새사진폴더"
 ```
 
-모든 진입점(`train_aihub`, `train_all`, `predict`, `crop_faces`)과 `app_gui`/`html_report` 모듈 import는 재구성 후 실제로 실행해 정상 동작(데이터 로딩 → 모델 forward/backward, 얼굴 검출 → 예측 → Grad-CAM)을 확인했습니다.
+모든 진입점(`app_gui`, `train_aihub`, `train_all`, `predict`, `crop_faces`)을 두 실행 방식 모두로 직접 실행해 정상 동작(GUI 창 실제 실행, 얼굴 검출 → 예측 → Grad-CAM, 데이터 로딩 → 모델 forward/backward)을 확인했습니다.
 
 ### 저장 결과 (`outputs/<run_name>/`)
 

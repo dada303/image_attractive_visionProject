@@ -26,6 +26,7 @@
 # ------------------------------------------------------------------------------------
 
 import os
+import sys
 import threading
 import tkinter as tk
 import webbrowser
@@ -34,9 +35,17 @@ from tkinter import filedialog, scrolledtext, ttk
 import torch
 from PIL import Image, ImageTk
 
-from .html_report import build_html_report
-from ..inference.predict import predict_one, lookup_ground_truth, MODEL_LABELS
-from ..training.train_common import DEFAULT_OUTPUT_ROOT
+# 이 파일(DenseNet121/app_gui.py)을 "python app_gui.py"로 직접 실행하면 파이썬은
+# 이 파일이 있는 폴더(DenseNet121/)만 sys.path에 자동으로 넣어준다. training/, inference/,
+# gui/ 하위 패키지를 곧바로 import할 수 있도록 그 경로가 sys.path에 없다면 추가해 둔다.
+# (반대로 "python -m DenseNet121.app_gui"처럼 패키지로 실행했을 때도 동일하게 동작한다.)
+_DENSENET121_DIR = os.path.dirname(os.path.abspath(__file__))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from gui.html_report import build_html_report
+from inference.predict import predict_one, lookup_ground_truth, MODEL_LABELS
+from training.train_common import DEFAULT_OUTPUT_ROOT
 
 # images/, labels_combined_1to5.xlsx 와 마찬가지로 outputs/ 도 DenseNet121 코드 폴더가 아니라
 # 프로젝트 루트에 있다 (train_aihub.py/train_all.py 의 기본 저장 위치와 동일해야 함).

@@ -19,6 +19,7 @@
 import argparse
 import json
 import os
+import sys
 
 import cv2
 import numpy as np
@@ -26,10 +27,17 @@ import pandas as pd
 import torch
 from PIL import Image
 
-from ..training.dataset import build_transforms
-from ..training.model import build_model
-from .gradcam import compute_gradcam, build_overlay_image, describe_focus_region
-from ..training.train_common import DEFAULT_OUTPUT_ROOT, DEFAULT_LABELS_PATH
+# 이 파일을 "python predict.py"로 직접 실행하거나, app_gui.py/crop_faces.py처럼 다른 곳에서
+# 직접 실행 방식으로 import할 때도 training/ 패키지를 문제없이 찾을 수 있도록 DenseNet121/
+# 폴더를 sys.path에 넣어둔다.
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from training.dataset import build_transforms
+from training.model import build_model
+from inference.gradcam import compute_gradcam, build_overlay_image, describe_focus_region
+from training.train_common import DEFAULT_OUTPUT_ROOT, DEFAULT_LABELS_PATH
 
 
 def _load_face_cascade() -> cv2.CascadeClassifier:

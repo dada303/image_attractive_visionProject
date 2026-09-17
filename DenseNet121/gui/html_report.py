@@ -9,11 +9,19 @@ import base64
 import html
 import io
 import os
+import sys
 from datetime import datetime
 
 from PIL import Image
 
-from ..inference.predict import MODEL_LABELS
+# app_gui.py를 "python app_gui.py"로 직접 실행하는 경우와 "python -m DenseNet121...."로
+# 실행하는 경우 모두에서 inference/ 패키지를 문제없이 import할 수 있도록, 이 파일이 속한
+# DenseNet121/ 폴더를 sys.path에 넣어둔다 (predict.py, app_gui.py도 동일한 방식을 쓴다).
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from inference.predict import MODEL_LABELS
 
 THUMBNAIL_MAX_SIZE = 260
 

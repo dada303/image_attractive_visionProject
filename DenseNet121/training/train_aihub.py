@@ -20,7 +20,14 @@
 #   - test_metrics_aihub.json   : MAE, RMSE, 상관계수, 정확도 등 최종 성능 지표
 # ------------------------------------------------------------------------------------
 
-from .train_common import build_arg_parser, run_training
+import os
+import sys
+
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from training.train_common import build_arg_parser, run_training
 
 if __name__ == "__main__":
     parser = build_arg_parser(default_run_name="aihub")

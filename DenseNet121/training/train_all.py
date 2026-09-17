@@ -17,7 +17,14 @@
 # train_aihub.py(안 1)의 결과물과 섞이지 않고 바로 구분할 수 있다.
 # ------------------------------------------------------------------------------------
 
-from .train_common import build_arg_parser, run_training
+import os
+import sys
+
+_DENSENET121_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DENSENET121_DIR not in sys.path:
+    sys.path.insert(0, _DENSENET121_DIR)
+
+from training.train_common import build_arg_parser, run_training
 
 if __name__ == "__main__":
     parser = build_arg_parser(default_run_name="all")
