@@ -4,7 +4,8 @@
 <body>
 <main class="app">
 <header class="topbar"><a class="wordmark" href="./" aria-label="비전 프로젝트 홈"><span class="mark">V</span> VISION PROJECT</a><span class="edition">2조</span></header>
-<section class="intro"><div class="eyebrow">현대오토에버 모빌리티 SW스쿨 · 스마트팩토리</div><h1>얼굴 이미지 평가</h1><div class="model-badges"><span>DenseNet121</span><span>예측 점수 1–5</span></div></section>
+<section class="intro"><div class="eyebrow">현대오토에버 모빌리티 SW스쿨 · 스마트팩토리</div><h1>얼굴 이미지 평가</h1><div class="model-badges"><span id="model-badge">DenseNet121</span><span>예측 점수 1–5</span></div></section>
+<div class="model-picker"><label for="model-select">분석 모델</label><select id="model-select" disabled><option value="">모델 확인 중…</option></select></div>
 <section class="studio" aria-label="사진 스튜디오">
 <div class="hero-art" id="hero">
 <svg class="portrait" viewBox="0 0 340 300" role="img" aria-label="얼굴을 담은 따뜻한 색감의 추상 일러스트">
@@ -25,14 +26,20 @@
 <div id="photo-panel" class="photo-panel" hidden><img id="photo" alt="선택한 사진 미리보기"><span class="photo-tag">선택한 이미지</span><button id="remove" class="icon-button" aria-label="사진 삭제" title="사진 삭제">×</button><div class="photo-bottom"><span id="filename"></span><span id="dimensions"></span></div></div>
 <div class="studio-foot"><span class="small-dot"></span><span id="studio-caption">정면 얼굴 사진 · 한 사람</span></div>
 </section>
+<section id="result" class="result-card" aria-live="polite" hidden>
+<span class="result-label">AI 예측 점수</span>
+<div class="result-score"><strong id="score">—</strong><span> / 5.00</span></div>
+<meter id="score-meter" min="1" max="5" value="1" aria-label="예측 점수"></meter>
+<p id="result-model"></p>
+</section>
 <p id="status" class="status" role="status" aria-live="polite"></p>
 <section class="actions" aria-label="사진 선택">
 <input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
 <button id="upload" class="button primary"><span class="button-icon">↥</span><span id="upload-label">사진 선택하기</span><span class="arrow">↗</span></button>
 <button id="camera" class="button secondary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6l2-3h4l2 3h4v14H4V6z"/><circle cx="12" cy="12" r="4"/></svg>카메라로 촬영하기</button>
-<div id="selected-actions" hidden><button id="analyze" class="button analyze" disabled>점수 분석 · 모델 연결 예정</button><button id="download" class="text-button">선택한 사진 PNG로 저장 <span>↓</span></button></div>
+<div id="selected-actions" hidden><button id="analyze" class="button analyze" disabled>점수 확인</button><button id="download" class="text-button">선택한 사진 PNG로 저장 <span>↓</span></button></div>
 </section>
-<div class="privacy"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="8" width="10" height="9" rx="2"/><path d="M7 8V5a3 3 0 016 0v3"/></svg><span>사진은 서버에 저장되지 않습니다.</span></div>
+<div class="privacy"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="8" width="10" height="9" rx="2"/><path d="M7 8V5a3 3 0 016 0v3"/></svg><span>사진은 이 PC에서 분석되며 저장되지 않습니다.</span></div>
 
 <footer><span>스마트팩토리 과정</span><span>2조 · 머신 비전 프로젝트</span></footer>
 </main>

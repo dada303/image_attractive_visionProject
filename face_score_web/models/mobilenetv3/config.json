@@ -1,0 +1,22 @@
+{
+  "id": "mobilenetv3",
+  "label": "MobileNetV3",
+  "architecture": "mobilenet_v3_large",
+  "checkpoint": "mobilenetv3_regression_final.pt",
+  "resize": "stretch",
+  "image_size": 224,
+  "resize_size": 256,
+  "interpolation": "bilinear",
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "output": "identity",
+  "notes": "Verified against train_mobilenetv3_regression.ipynb: eval_transform and linear regression output."
+}
