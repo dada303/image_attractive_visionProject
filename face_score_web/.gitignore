@@ -7,3 +7,14 @@ __pycache__/
 *.keras
 runtime/*
 !runtime/.gitkeep
+
+# Deployment secrets and generated data
+.env.*
+!.env.example
+*.pem
+*.key
+.cloudflared/
+cloudflared*.yml
+!cloudflared.example.yml
+*.log
+*.tmp

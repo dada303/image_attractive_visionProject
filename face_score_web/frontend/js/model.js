@@ -1,8 +1,8 @@
-export async function predictImage(blob, modelId) {
+export async function predictImage(blob, modelId, filename) {
   let response;
   try {
     response = await fetch('/api/predict?model=' + encodeURIComponent(modelId), {
-      method: 'POST', headers: { 'Content-Type': 'application/octet-stream' },
+      method: 'POST', headers: { 'Content-Type': 'application/octet-stream', 'X-Filename': encodeURIComponent(filename) },
       body: blob, signal: AbortSignal.timeout(120000),
     });
   } catch (error) {

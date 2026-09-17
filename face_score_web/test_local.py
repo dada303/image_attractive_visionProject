@@ -80,7 +80,7 @@ class LocalAppTests(unittest.TestCase):
         with self.request('/') as response:
             self.assertIn('점수 확인', response.read().decode('utf-8'))
         with self.request('/js/app.js') as response:
-            self.assertIn('predictImage(selectedBlob, modelId)', response.read().decode('utf-8'))
+            self.assertIn('predictImage(selectedBlob, modelId, selectedName)', response.read().decode('utf-8'))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

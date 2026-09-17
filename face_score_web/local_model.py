@@ -92,10 +92,11 @@ class FaceScorer:
 MODEL_IDS = ('densenet121', 'mobilenetv3', 'efficientnet_b0')
 
 class ModelRegistry:
-    def __init__(self, checkpoint=None):
+    def __init__(self, checkpoint=None, model_ids=MODEL_IDS):
+        self.model_ids = tuple(dict.fromkeys(model_ids))
         self.scorers = {}
         self.errors = {}
-        for model_id in MODEL_IDS:
+        for model_id in self.model_ids:
             try:
                 self.scorers[model_id] = FaceScorer(checkpoint if model_id == 'densenet121' else None, model_id)
             except Exception as exc:
@@ -106,7 +107,7 @@ class ModelRegistry:
         labels = {'densenet121': 'DenseNet121', 'mobilenetv3': 'MobileNetV3', 'efficientnet_b0': 'EfficientNet-B0'}
         return [{'id': key, 'label': labels[key], 'ready': key in self.scorers,
                  'error': '모델 파일 또는 설정을 확인해주세요.' if key in self.errors else None}
-                for key in MODEL_IDS]
+                for key in self.model_ids]
 
     def predict(self, data, model_id='densenet121'):
         if model_id not in MODEL_IDS:

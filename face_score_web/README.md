@@ -38,3 +38,7 @@
 ```
 
 모델 파일과 `.venv`는 Git에 포함하지 않습니다. 다른 PC에서는 모델도 위 경로에 복사해야 합니다.
+
+## 인터넷 배포
+
+Windows + Cloudflare Tunnel의 운영 실행, 설정 및 Git 점검 결과는 [DEPLOY_WINDOWS.md](DEPLOY_WINDOWS.md)를 참고하세요. 기존 로컬 실행은 8766, 운영 실행은 production.py의 8767 포트를 사용합니다.

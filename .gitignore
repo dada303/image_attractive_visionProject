@@ -23,3 +23,24 @@ __pycache__/
 runtime/*
 !runtime/.gitkeep
 
+
+# Deployment secrets and generated data
+.env.*
+!.env.example
+*.pem
+*.key
+.cloudflared/
+cloudflared*.yml
+!cloudflared.example.yml
+*.log
+*.tmp
+
+# Private training data (already tracked files require separate index cleanup)
+/images/
+/test_photo_9/
+/labels*.csv
+/labels*.xlsx
+/backups/
+/tmp/
+/.idea/
+/.omx/

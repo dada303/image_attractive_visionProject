@@ -110,7 +110,7 @@ $('analyze').addEventListener('click', async () => {
   $('analyze').textContent = '분석 중…'; resetResult();
   status(modelLabel + ' 모델이 사진을 분석하고 있어요…');
   try {
-    const result = await predictImage(selectedBlob, modelId);
+    const result = await predictImage(selectedBlob, modelId, selectedName);
     if (token !== version) return;
     $('score').textContent = result.score.toFixed(2);
     $('score-meter').value = result.score;
@@ -140,7 +140,7 @@ async function loadModels() {
       const option = new Option(model.label + (model.ready ? '' : ' (사용 불가)'), model.id);
       option.disabled = !model.ready; select.add(option);
     }
-    const first = data.models.find(model => model.ready);
+    const first = data.models.find(model => model.ready && model.id === data.default_model) || data.models.find(model => model.ready);
     if (!first) throw new Error();
     select.value = first.id; select.disabled = false; modelsReady = true;
     $('model-badge').textContent = first.label;
