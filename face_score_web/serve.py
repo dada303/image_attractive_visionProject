@@ -4,9 +4,9 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 import traceback
-from local_model import DEFAULT_CHECKPOINT, MAX_BYTES, FaceScorer
+from local_model import DEFAULT_CHECKPOINT, MAX_BYTES, ModelRegistry
 
 FRONTEND = Path(__file__).resolve().parent / 'frontend'
 
@@ -40,10 +40,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             return
-        if urlsplit(self.path).path == '/api/health':
-            self.respond(200, {'ready': True, 'model': 'DenseNet121',
-                               'checkpoint': self.scorer.checkpoint.name,
-                               'device': str(self.scorer.device)})
+        if urlsplit(self.path).path in ('/api/health', '/api/models'):
+            self.respond(200, {'ready': bool(self.scorer.scorers), 'models': self.scorer.list_models()})
         else:
             super().do_GET()
 
@@ -66,7 +64,7 @@ class Handler(SimpleHTTPRequestHandler):
             data = self.rfile.read(length)
             if len(data) != length:
                 raise ValueError('사진 전송이 완료되지 않았습니다.')
-            self.respond(200, self.scorer.predict(data))
+            self.respond(200, self.scorer.predict(data, parse_qs(urlsplit(self.path).query).get('model', ['densenet121'])[0]))
         except ValueError as exc:
             self.respond(400, {'error': str(exc)})
         except TimeoutError:
@@ -78,12 +76,12 @@ class Handler(SimpleHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8766)
-    parser.add_argument('--checkpoint', type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument('--checkpoint', type=Path, default=None)
     args = parser.parse_args()
-    print('Loading DenseNet121...', flush=True)
-    scorer = FaceScorer(args.checkpoint)
+    print('Loading face score models...', flush=True)
+    scorer = ModelRegistry(args.checkpoint)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), partial(Handler, scorer=scorer))
-    print(f'DenseNet121 ({scorer.device}): http://localhost:{args.port}', flush=True)
+    print(f'Face score: http://localhost:{args.port}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

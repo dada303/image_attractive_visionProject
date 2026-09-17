@@ -1,7 +1,7 @@
 import { predictImage } from "./model.js";
 const $ = (id) => document.getElementById(id);
 const fileInput = $("file"), photo = $("photo"), dialog = $("camera-dialog"), video = $("video");
-let selectedBlob = null, busy = false;
+let selectedBlob = null, busy = false, modelsReady = false;
 let imageUrl = null, stream = null, version = 0, cameraVersion = 0, selectedName = "";
 const MAX_BYTES = 10 * 1024 * 1024, MAX_PIXELS = 20_000_000;
 function status(message = "") { $("status").textContent = message; }
@@ -33,7 +33,7 @@ async function selectPhoto(blob, name) {
     $("dimensions").textContent = probe.naturalWidth + " × " + probe.naturalHeight;
     $("hero").hidden = true; $("photo-panel").hidden = false; $("selected-actions").hidden = false;
     $("upload-label").textContent = "다른 사진 선택하기";
-    $("analyze").disabled = busy;
+    $("analyze").disabled = busy || !modelsReady;
     status("사진 준비 완료 · 점수 확인을 눌러주세요.");
   } catch (error) {
     URL.revokeObjectURL(url);
@@ -102,22 +102,51 @@ window.addEventListener("pagehide", () => { stopCamera(); if (imageUrl) URL.revo
 document.addEventListener("visibilitychange", () => { if (document.hidden && dialog.open) dialog.close(); });
 
 $('analyze').addEventListener('click', async () => {
-  if (!selectedBlob || busy) return;
+  if (!selectedBlob || busy || !modelsReady) return;
   const token = version;
+  const modelId = $('model-select').value;
+  const modelLabel = $('model-select').selectedOptions[0].textContent;
   busy = true; $('analyze').disabled = true;
   $('analyze').textContent = '분석 중…'; resetResult();
-  status('DenseNet121이 사진을 분석하고 있어요…');
+  status(modelLabel + ' 모델이 사진을 분석하고 있어요…');
   try {
-    const result = await predictImage(selectedBlob);
+    const result = await predictImage(selectedBlob, modelId);
     if (token !== version) return;
     $('score').textContent = result.score.toFixed(2);
     $('score-meter').value = result.score;
+    $('result-model').textContent = result.model + ' · AI 예측 점수';
     $('result').hidden = false;
     status('분석 완료');
   } catch (error) {
     if (token === version) status(error.message);
   } finally {
-    busy = false; $('analyze').disabled = !selectedBlob;
+    busy = false; $('analyze').disabled = !selectedBlob || !modelsReady;
     $('analyze').textContent = '점수 확인';
   }
 });
+
+$('model-select').addEventListener('change', () => {
+  version++; resetResult();
+  $('model-badge').textContent = $('model-select').selectedOptions[0].textContent;
+  status(selectedBlob ? '모델 변경 완료 · 점수 확인을 눌러주세요.' : '');
+});
+async function loadModels() {
+  try {
+    const response = await fetch('/api/models');
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    const select = $('model-select'); select.replaceChildren();
+    for (const model of data.models) {
+      const option = new Option(model.label + (model.ready ? '' : ' (사용 불가)'), model.id);
+      option.disabled = !model.ready; select.add(option);
+    }
+    const first = data.models.find(model => model.ready);
+    if (!first) throw new Error();
+    select.value = first.id; select.disabled = false; modelsReady = true;
+    $('model-badge').textContent = first.label;
+    $('analyze').disabled = !selectedBlob || busy;
+  } catch {
+    status('모델 목록을 불러오지 못했습니다. 로컬 프로그램을 확인하고 새로고침해주세요.');
+  }
+}
+loadModels();

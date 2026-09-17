@@ -4,7 +4,8 @@
 <body>
 <main class="app">
 <header class="topbar"><a class="wordmark" href="./" aria-label="비전 프로젝트 홈"><span class="mark">V</span> VISION PROJECT</a><span class="edition">2조</span></header>
-<section class="intro"><div class="eyebrow">현대오토에버 모빌리티 SW스쿨 · 스마트팩토리</div><h1>얼굴 이미지 평가</h1><div class="model-badges"><span>DenseNet121</span><span>예측 점수 1–5</span></div></section>
+<section class="intro"><div class="eyebrow">현대오토에버 모빌리티 SW스쿨 · 스마트팩토리</div><h1>얼굴 이미지 평가</h1><div class="model-badges"><span id="model-badge">DenseNet121</span><span>예측 점수 1–5</span></div></section>
+<div class="model-picker"><label for="model-select">분석 모델</label><select id="model-select" disabled><option value="">모델 확인 중…</option></select></div>
 <section class="studio" aria-label="사진 스튜디오">
 <div class="hero-art" id="hero">
 <svg class="portrait" viewBox="0 0 340 300" role="img" aria-label="얼굴을 담은 따뜻한 색감의 추상 일러스트">
@@ -29,7 +30,7 @@
 <span class="result-label">AI 예측 점수</span>
 <div class="result-score"><strong id="score">—</strong><span> / 5.00</span></div>
 <meter id="score-meter" min="1" max="5" value="1" aria-label="예측 점수"></meter>
-<p>DenseNet121 · 전체 데이터 학습 모델</p>
+<p id="result-model"></p>
 </section>
 <p id="status" class="status" role="status" aria-live="polite"></p>
 <section class="actions" aria-label="사진 선택">

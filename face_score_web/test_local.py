@@ -9,13 +9,13 @@ import unittest
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from PIL import Image
-from local_model import FaceScorer, PROJECT
+from local_model import ModelRegistry, PROJECT
 from serve import Handler
 
 class LocalAppTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.scorer = FaceScorer()
+        cls.scorer = ModelRegistry()
         cls.server = ThreadingHTTPServer(('127.0.0.1', 0), partial(Handler, scorer=cls.scorer))
         cls.thread = Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -33,13 +33,30 @@ class LocalAppTests(unittest.TestCase):
     def test_real_image_matches_direct_inference(self):
         photo = next((PROJECT / 'test_photo_9').glob('*.png'))
         data = photo.read_bytes()
-        direct = self.scorer.predict(data)
-        with self.request('/api/predict', data, **{'Content-Type': 'application/octet-stream'}) as response:
-            result = json.load(response)
-        self.assertAlmostEqual(result['raw_score'], direct['raw_score'], places=6)
-        self.assertGreaterEqual(result['score'], 1)
-        self.assertLessEqual(result['score'], 5)
-        print(f"Actual checkpoint: {photo.name}, score={result['score']:.4f}")
+        for model_id in ('densenet121', 'mobilenetv3', 'efficientnet_b0'):
+            with self.subTest(model=model_id):
+                direct = self.scorer.predict(data, model_id)
+                with self.request('/api/predict?model=' + model_id, data) as response:
+                    result = json.load(response)
+                self.assertEqual(result['model_id'], model_id)
+                self.assertAlmostEqual(result['raw_score'], direct['raw_score'], places=6)
+                self.assertGreaterEqual(result['score'], 1)
+                self.assertLessEqual(result['score'], 5)
+                if model_id == 'efficientnet_b0':
+                    import math
+                    self.assertAlmostEqual(result['score'], 1 + 4 / (1 + math.exp(-result['raw_score'])), places=5)
+                print(f"{model_id}: {result['score']:.4f}")
+
+    def test_unknown_model_rejected(self):
+        with self.assertRaises(HTTPError) as caught:
+            self.request('/api/predict?model=unknown', b'data')
+        self.assertEqual(caught.exception.code, 400)
+
+    def test_models_list(self):
+        with self.request('/api/models') as response:
+            models = json.load(response)['models']
+        self.assertEqual(len(models), 3)
+        self.assertTrue(all(model['ready'] for model in models))
 
     def test_invalid_image(self):
         with self.assertRaises(HTTPError) as caught:
@@ -63,7 +80,7 @@ class LocalAppTests(unittest.TestCase):
         with self.request('/') as response:
             self.assertIn('점수 확인', response.read().decode('utf-8'))
         with self.request('/js/app.js') as response:
-            self.assertIn('predictImage(selectedBlob)', response.read().decode('utf-8'))
+            self.assertIn('predictImage(selectedBlob, modelId)', response.read().decode('utf-8'))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
