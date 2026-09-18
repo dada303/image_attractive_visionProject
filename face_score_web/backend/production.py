@@ -7,10 +7,10 @@ from urllib.parse import unquote, urlsplit
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
-from face_crop import CropError, validate_upload
-from local_model import MAX_BYTES, MODEL_IDS, ModelRegistry
+from .face_crop import CropError, validate_upload
+from .local_model import MAX_BYTES, MODEL_IDS, ModelRegistry
 
-FRONTEND = Path(__file__).resolve().parent / 'frontend'
+FRONTEND = Path(__file__).resolve().parents[1] / 'frontend'
 
 
 def create_app(registry=None):
@@ -110,7 +110,7 @@ def create_app(registry=None):
 if __name__ == '__main__':
     from waitress import serve
     logging.basicConfig(level=logging.INFO)
-    application = create_app()  # Load each enabled checkpoint once before accepting requests.
+    application = create_app()
     host = os.environ.get('HOST', '127.0.0.1')
     port = int(os.environ.get('PORT', '8767'))
     print(f'Production origin: http://{host}:{port}', flush=True)

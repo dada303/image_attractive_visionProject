@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from cropping.crop_local_idol_faces_haar import largest_face, square_box
 
 MAX_BYTES = 10 * 1024 * 1024

@@ -17,6 +17,7 @@ async function requestImage(route, blob, filename, { signal, token } = {}) {
   }
   return response;
 }
+
 export async function cropImage(blob, filename, signal) {
   const response = await requestImage('/api/crop', blob, filename, { signal });
   const token = response.headers.get('X-Crop-Token');
@@ -24,6 +25,7 @@ export async function cropImage(blob, filename, signal) {
   if (!token || cropped.type !== 'image/png') throw new Error('올바른 Crop 응답이 아닙니다.');
   return { blob: cropped, token, faceCount: Number(response.headers.get('X-Face-Count') || 1) };
 }
+
 export async function predictImage(blob, modelId, token, signal) {
   const response = await requestImage('/api/predict?model=' + encodeURIComponent(modelId), blob, 'face-crop.png', { token, signal });
   const result = await response.json();

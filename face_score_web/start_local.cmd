@@ -6,5 +6,5 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 echo Open http://localhost:8766 after the model loads.
-".venv\Scripts\python.exe" serve.py
+".venv\Scripts\python.exe" -m backend.serve
 pause

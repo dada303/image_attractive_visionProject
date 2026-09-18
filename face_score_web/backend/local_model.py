@@ -9,13 +9,13 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 import torch
 from torchvision import transforms, models
 from torch import nn
-from face_crop import CropService
+from .face_crop import CropService
 
-PROJECT = Path(__file__).resolve().parents[1]
+PROJECT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT))
 from DenseNet121.training.model import build_model
 
-MODELS_DIR = Path(__file__).resolve().parent / 'models'
+MODELS_DIR = Path(__file__).resolve().parents[1] / 'models'
 DEFAULT_CHECKPOINT = MODELS_DIR / 'densenet121' / 'best_model_all.pt'
 MAX_BYTES = 10 * 1024 * 1024
 MAX_PIXELS = 20_000_000

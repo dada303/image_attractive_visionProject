@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 import traceback
-from face_crop import CropError, validate_upload
-from local_model import DEFAULT_CHECKPOINT, MAX_BYTES, ModelRegistry
+from .face_crop import CropError, validate_upload
+from .local_model import DEFAULT_CHECKPOINT, MAX_BYTES, ModelRegistry
 
-FRONTEND = Path(__file__).resolve().parent / 'frontend'
+FRONTEND = Path(__file__).resolve().parents[1] / 'frontend'
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, scorer, **kwargs):

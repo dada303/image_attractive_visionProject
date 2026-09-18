@@ -13,15 +13,15 @@ _현대오토에버 스마트팩토리 과정 비전 프로젝트 - 1_
 
 ```mermaid
 flowchart TD
-    LOCAL["내 PC 브라우저"] --> DEV["serve.py · localhost:8766"]
+    LOCAL["내 PC 브라우저"] --> DEV["backend/serve.py · localhost:8766"]
     REMOTE["외부 PC / 스마트폰"] -->|HTTPS| CF["Cloudflare Tunnel"]
     CF --> AGENT["Windows PC의 cloudflared"]
-    AGENT -->|HTTP · 127.0.0.1:8767| PROD["production.py · Waitress + Flask"]
+    AGENT -->|HTTP · 127.0.0.1:8767| PROD["backend/production.py · Waitress + Flask"]
     DEV --> UI["Frontend · HTML / CSS / JavaScript"]
     PROD --> UI
     UI --> INPUT["파일 업로드 / 카메라 촬영"]
     INPUT -->|POST /api/crop| VALIDATE["확장자 · 크기 · 이미지 검증"]
-    VALIDATE --> HAAR["face_crop.py · Haar Cascade"]
+    VALIDATE --> HAAR["backend/face_crop.py · Haar Cascade"]
     HAAR --> BOX["가장 큰 얼굴 · 25% 여백 · 정사각형 Crop"]
     BOX --> PNG["무손실 PNG + Crop 확인 토큰"]
     PNG --> PREVIEW["Crop 미리보기 · 브라우저 Blob 보관"]
@@ -29,7 +29,7 @@ flowchart TD
     CHECK -->|다른 사진 선택| INPUT
     CHECK -->|결과 보기 클릭| API["POST /api/predict · 같은 PNG + 토큰"]
     API --> VERIFY["토큰 검증 · 재검출하지 않음"]
-    VERIFY --> REG["local_model.py · ModelRegistry"]
+    VERIFY --> REG["backend/local_model.py · ModelRegistry"]
     WEIGHTS["models/ · config.json + 학습된 .pt"] -->|시작 시 한 번 로드| REG
     REG --> DENSE["DenseNet121"]
     REG --> MOBILE["MobileNetV3"]
@@ -71,7 +71,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 .\.venv\Scripts\python.exe -m pip install -r requirements-local.txt
 
 # 매번 실행
-.\.venv\Scripts\python.exe serve.py
+.\.venv\Scripts\python.exe -m backend.serve
 ```
 
 브라우저에서 [http://localhost:8766](http://localhost:8766)을 엽니다. 
@@ -85,7 +85,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 포트 변경:
 
 ```powershell
-.\.venv\Scripts\python.exe serve.py --port 8768
+.\.venv\Scripts\python.exe -m backend.serve --port 8768
 ```
 
 로컬 모델 기본 선택은 DenseNet121입니다. 
@@ -94,7 +94,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 
 ### 2.3 Cloudflare Tunnel로 외부 HTTPS 접속 열기
 
-공개 접속에는 `serve.py` 대신 Windows 운영용 `production.py`를 사용합니다. **서버 창과 Tunnel 창을 모두 유지**해야 합니다.
+공개 접속에는 `backend/serve.py` 대신 Windows 운영용 `backend/production.py`를 사용합니다. **서버 창과 Tunnel 창을 모두 유지**해야 합니다.
 
 **① PowerShell 창 A: 운영 패키지 설치 및 서버 실행**
 
@@ -110,7 +110,7 @@ $env:PUBLIC_ORIGIN = ''
 $env:DEFAULT_MODEL = 'efficientnet_b0'
 $env:ENABLED_MODELS = 'densenet121,mobilenetv3,efficientnet_b0'
 
-.\.venv\Scripts\python.exe production.py
+.\.venv\Scripts\python.exe -m backend.production
 ```
 
 [http://localhost:8767](http://localhost:8767)에서 먼저 정상 동작을 확인합니다.
@@ -139,7 +139,7 @@ Ctrl+C로 앱만 종료한 뒤, 아래 예제 주소를 실제 발급 주소로 
 
 ```powershell
 $env:PUBLIC_ORIGIN = 'https://실제발급주소.trycloudflare.com'
-.\.venv\Scripts\python.exe production.py
+.\.venv\Scripts\python.exe -m backend.production
 ```
 
 다른 PC나 스마트폰에서 이 HTTPS 주소로 접속합니다. Tunnel 주소가 바뀌면 `PUBLIC_ORIGIN`도 바꾸고 앱을 재시작해야 합니다. 기존 `start_production.ps1 -PublicOrigin 'https://실제주소'` 스크립트로도 운영 앱을 실행할 수 있습니다.
@@ -157,7 +157,7 @@ $env:PUBLIC_ORIGIN = 'https://실제발급주소.trycloudflare.com'
 | `DEFAULT_MODEL` | `efficientnet_b0` | 운영 화면 기본 모델 |
 | `ENABLED_MODELS` | 3종 모두 | 쉼표로 구분한 활성 모델 ID |
 
-EfficientNet만 실행하려면 `ENABLED_MODELS=efficientnet_b0`로 설정합니다. `.env.example`은 참고용이며 앱이 `.env`를 자동으로 읽지는 않습니다. PowerShell의 `$env:`로 설정하세요. 로컬 `serve.py`는 `--port`, `--checkpoint` 명령행 옵션을 사용하며 `--checkpoint`는 DenseNet 가중치 경로를 바꿉니다.
+EfficientNet만 실행하려면 `ENABLED_MODELS=efficientnet_b0`로 설정합니다. `.env.example`은 참고용이며 앱이 `.env`를 자동으로 읽지는 않습니다. PowerShell의 `$env:`로 설정하세요. 로컬 `backend/serve.py`는 `--port`, `--checkpoint` 명령행 옵션을 사용하며 `--checkpoint`는 DenseNet 가중치 경로를 바꿉니다.
 
 ## 3. 파일 구조
 
@@ -173,10 +173,12 @@ image_attractive_visionProject/
     │   └── js/
     │       ├── app.js               # 업로드·촬영·상태·요청 순서 관리
     │       └── model.js             # Crop / Prediction API 호출
-    ├── serve.py                     # 로컬 전용 HTTP 서버, 기본 8766
-    ├── production.py                # Flask + Waitress 운영 서버, 기본 8767
-    ├── face_crop.py                 # Haar 검출·PNG 생성·Crop 토큰 검증
-    ├── local_model.py               # 모델 로딩·전처리·회귀 추론
+    ├── backend/
+    │   ├── __init__.py              # 백엔드 Python 패키지
+    │   ├── serve.py                 # 로컬 HTTP 서버, 기본 8766
+    │   ├── production.py            # Flask + Waitress 운영 서버, 기본 8767
+    │   ├── face_crop.py             # Haar 검출·PNG 생성·토큰 검증
+    │   └── local_model.py           # 모델 로딩·전처리·회귀 추론
     ├── models/
     │   ├── README.md                # 모델 교체 규칙
     │   ├── densenet121/
@@ -196,14 +198,8 @@ image_attractive_visionProject/
     ├── .env.example                 # 환경변수 참고 예제
     ├── cloudflared.example.yml       # 고정 도메인 Tunnel 예제
     ├── runtime/                     # 실행 로그 등 임시 자료, Git 제외
-    ├── test_crop.py                 # 실제 Haar 검출·Crop 테스트
-    ├── test_local.py                # 로컬 API 통합 테스트
-    ├── test_production.py           # 운영 API 및 접근 제한 테스트
-    ├── test_frontend.cjs            # 상태 초기화·race·버튼 추론 테스트
-    ├── CROP_FLOW.md                 # Crop 구현 상세
-    ├── DEPLOY_WINDOWS.md            # 배포·방화벽·Git 점검 상세
-    ├── docs/                       # 초기 설계 참고 문서
-    └── dist/                       # 이전 정적 배포 결과, 현재 실행에 사용하지 않음
+    └── tests/
+        └── test_backend.py         # Crop·세 모델 추론·로컬/운영 API 회귀 테스트
 ```
 
 학습용 이미지·라벨·노트북은 웹 추론에 필요하지 않습니다. 모델 교체 시 해당 `models/` 폴더의 `.pt`를 바꾸고 파일명이 달라지면 `config.json`의 `checkpoint`를 수정한 뒤 서버를 재시작합니다. 아키텍처·전처리·출력층 계약도 같아야 합니다. [모델 관리 안내](models/README.md)
@@ -319,3 +315,17 @@ X-Crop-Token: <Crop 응답에서 받은 토큰>
 | `429` | 운영 서버가 다른 Crop/추론 요청을 처리 중 |
 | `500` | 내부 이미지 처리/추론 오류 |
 
+
+
+## 백엔드 정리 및 검증
+
+서버 코드는 `backend/`, 화면 코드는 `frontend/`, 모델 파일은 `models/`에 분리되어 있습니다. `backend` 파일을 직접 실행하지 말고 `face_score_web` 폴더에서 `python -m backend.serve` 또는 `python -m backend.production`으로 실행하세요. 기존 시작 스크립트도 이 방식으로 변경했습니다.
+
+과거 정적 배포 산출물 `dist/`, 연결된 `.openai/hosting.json`, 사용하지 않는 `manifest.template.json` 및 불필요한 `.gitkeep`을 제거했습니다. 현재 Cloudflare Tunnel은 운영 Python 서버로 연결하므로 이 파일들이 필요하지 않습니다.
+
+```powershell
+cd C:\sungwon\image_attractive_visionProject\face_score_web
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+테스트는 세 모델 파일과 프로젝트의 `test_photo_9/F_2.png`를 사용합니다. 운영 테스트에는 `requirements.txt` 설치가 필요합니다.
