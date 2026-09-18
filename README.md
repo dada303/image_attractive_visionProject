@@ -15,7 +15,7 @@ _**현대오토에버 SW스쿨 스마트팩토리 4기 1차 비전 프로젝트*
 PowerShell:
 
 ```powershell
-cd C:\sungwon\image_attractive_visionProject\face_score_web
+cd C:\sungwon\image_attractive_visionProject\face_score_web_add_cropping
 
 # 최초 1회: 가상환경 및 로컬 의존성 설치
 if (-not (Test-Path .\.venv\Scripts\python.exe)) {
