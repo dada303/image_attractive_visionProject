@@ -3,7 +3,37 @@ _**현대오토에버 SW스쿨 스마트팩토리 4기 1차 비전 프로젝트*
 
 ## 개요
 
+- 5182 장의 동양인 얼굴 이미지를 5가지 CNN 딥러닝 모델에 학습
+- 가장 성과가 좋은 세가지 모델을 가지고 매력도 평가 서비스 제공
+- HTML + CSS + JavaScript 를 이용해 매력도 평가 서비스 UI 를 만듬
+- Waitress + Flask + CloudFlare 을 이용해서 웹 서비스로 제공
 
+
+## 로컬 실행 방법
+
+
+PowerShell:
+
+```powershell
+cd C:\sungwon\image_attractive_visionProject\face_score_web
+
+# 최초 1회: 가상환경 및 로컬 의존성 설치
+if (-not (Test-Path .\.venv\Scripts\python.exe)) {
+    py -3.12 -m venv .venv
+}
+.\.venv\Scripts\python.exe -m pip install -r requirements-local.txt
+
+# 매번 실행
+.\.venv\Scripts\python.exe -m backend.serve
+```
+
+브라우저에서 [http://localhost:8766](http://localhost:8766)을 엽니다. 
+
+설치가 끝났다면 `start_local.cmd`를 더블클릭해도 됩니다.
+
+처음에는 `setup_local.cmd`를 사용해도 됩니다.
+
+종료는 실행 창에서 **Ctrl+C**입니다.
 
 
 
