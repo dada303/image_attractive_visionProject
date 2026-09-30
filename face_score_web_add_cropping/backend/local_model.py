@@ -13,7 +13,7 @@ from .face_crop import CropService
 
 PROJECT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT))
-from DenseNet121.training.model import build_model
+from models.DenseNet121.training.model import build_model
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / 'models'
 DEFAULT_CHECKPOINT = MODELS_DIR / 'densenet121' / 'best_model_all.pt'

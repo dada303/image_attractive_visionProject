@@ -38,6 +38,8 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 
 
 ## 학습 데이터
+
+학습 이미지는 `data/images/`, CSV·XLSX 라벨링 파일은 `data/labels/`에 모아 관리합니다.
 | Dataset | 개수 | 설명 |
 |---|---:|---|
 | **AIHub** | 606 | 한국인 얼굴 이미지 기반 점수 데이터 |
@@ -53,6 +55,8 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 이미지 인식에 사용되는 CNN 계열 딥러닝 신경망들을 사용
 
 EfficientNet-B0 , MobileNetV3 , ResNet50 , DenseNet121 , NASNet
+
+학습된 모델 파일은 각 모델 영역의 `models/` 폴더에 저장합니다 (`DenseNet121/models/`, `EfficientNet-B0/models/`, `mobilenetv3/models/`, `classical_cv/models/`).
 
 ## 모델 지표
 

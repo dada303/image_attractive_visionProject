@@ -9,8 +9,8 @@ classical_cv/results/*.npz
 classical_cv/results/*.png
 __pycache__/
 *.pyc
-classical_cv/build/
-classical_cv/dist/
+models/classical_cv/build/
+models/classical_cv/dist/
 classical_cv/*.spec
 
 __pycache__/
@@ -37,7 +37,7 @@ cloudflared*.yml
 
 # Private training data (already tracked files require separate index cleanup)
 /images/
-/test_photo_9/
+/data/test_photo_9/
 /labels*.csv
 /labels*.xlsx
 /backups/
@@ -46,4 +46,4 @@ cloudflared*.yml
 /.omx/
 /TestPicture/
 /test_labels_1to5.xlsx
-/EfficientNet-B0/outputs/
+/models/EfficientNet-B0/outputs/
