@@ -1,6 +1,9 @@
 import { cropImage, predictImage } from "./model.js";
+
 const $ = (id) => document.getElementById(id);
+
 const fileInput = $("file"), photo = $("photo"), dialog = $("camera-dialog"), video = $("video");
+
 let selectedBlob = null, cropToken = null, busy = false, modelsReady = false;
 let cropController = null, predictionController = null, modelVersion = 0;
 let imageUrl = null, stream = null, version = 0, cameraVersion = 0, selectedName = "";
@@ -11,23 +14,34 @@ function resetResult() {
   $('score').textContent = '—';
   $('score-meter').value = 1; $('result-model').textContent = '';
 }
-function clearPhoto() {
+
+function clearPhoto()
+{
   version++;
   cropController?.abort(); predictionController?.abort();
   cropController = null; predictionController = null;
   selectedBlob = null; cropToken = null; busy = false; resetResult();
+
   if (imageUrl) URL.revokeObjectURL(imageUrl);
+
   imageUrl = null; photo.removeAttribute('src'); selectedName = '';
+
   $('filename').textContent = ''; $('dimensions').textContent = '';
   $('hero').hidden = false; $('photo-panel').hidden = true;
   $('analyze').disabled = true; $('analyze').textContent = '결과 보기';
   $('download').disabled = true;
   $('upload-label').textContent = '사진 선택하기'; fileInput.value = ''; status();
 }
-async function selectPhoto(blob, name) {
+
+async function selectPhoto(blob, name)
+{
   clearPhoto();
   const token = version;
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) { status('JPG, PNG, WebP 사진을 선택해주세요.'); return; }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type))
+  {
+    status('JPG, PNG, WebP 사진을 선택해주세요.'); return;
+  }
+
   if (!blob.size || blob.size > MAX_BYTES) { status('10MB 이하의 사진을 선택해주세요.'); return; }
   cropController = new AbortController();
   status('얼굴 인식 중…');

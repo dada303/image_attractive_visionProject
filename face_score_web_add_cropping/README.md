@@ -16,12 +16,12 @@ flowchart TD
     LOCAL["내 PC 브라우저"] --> DEV["backend/serve.py · localhost:8766"]
     REMOTE["외부 PC / 스마트폰"] -->|HTTPS| CF["Cloudflare Tunnel"]
     CF --> AGENT["Windows PC의 cloudflared"]
-    AGENT -->|HTTP · 127.0.0.1:8767| PROD["backend/production.py · Waitress + Flask"]
+    AGENT -->|HTTP · 127.0.0.1:8767| PROD["backend/production.py · Uvicorn + FastAPI"]
     DEV --> UI["Frontend · HTML / CSS / JavaScript"]
     PROD --> UI
     UI --> INPUT["파일 업로드 / 카메라 촬영"]
     INPUT -->|POST /api/crop| VALIDATE["확장자 · 크기 · 이미지 검증"]
-    VALIDATE --> HAAR["backend/face_crop.py · Haar Cascade"]
+    VALIDATE --> HAAR["backend/services/crop_service.py · Haar Cascade"]
     HAAR --> BOX["가장 큰 얼굴 · 25% 여백 · 정사각형 Crop"]
     BOX --> PNG["무손실 PNG + Crop 확인 토큰"]
     PNG --> PREVIEW["Crop 미리보기 · 브라우저 Blob 보관"]
@@ -29,7 +29,7 @@ flowchart TD
     CHECK -->|다른 사진 선택| INPUT
     CHECK -->|결과 보기 클릭| API["POST /api/predict · 같은 PNG + 토큰"]
     API --> VERIFY["토큰 검증 · 재검출하지 않음"]
-    VERIFY --> REG["backend/local_model.py · ModelRegistry"]
+    VERIFY --> REG["backend/services/model_service.py · ModelRegistry"]
     WEIGHTS["models/ · config.json + 학습된 .pt"] -->|시작 시 한 번 로드| REG
     REG --> DENSE["DenseNet121"]
     REG --> MOBILE["MobileNetV3"]
@@ -55,14 +55,14 @@ models/mobilenetv3/mobilenetv3_regression_final.pt
 models/efficientnet_b0/EfficientNetAllImage.pt
 ```
 
-프로젝트 루트의 `cropping/crop_local_idol_faces_haar.py`와`DenseNet121/training/model.py`도 import하므로 `face_score_web` 폴더만 단독 복사하면 실행되지 않습니다.
+프로젝트 루트의 `cropping/crop_local_idol_faces_haar.py`와 `models/DenseNet121/training/model.py`도 import하므로 `face_score_web_add_cropping` 폴더만 단독 복사하면 실행되지 않습니다.
 
 ### 2.2 로컬에서 실행
 
 PowerShell:
 
 ```powershell
-cd C:\sungwon\image_attractive_visionProject\face_score_web
+cd C:\sungwon\image_attractive_visionProject\face_score_web_add_cropping
 
 # 최초 1회: 가상환경 및 로컬 의존성 설치
 if (-not (Test-Path .\.venv\Scripts\python.exe)) {
@@ -74,7 +74,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 .\.venv\Scripts\python.exe -m backend.serve
 ```
 
-브라우저에서 [http://localhost:8766](http://localhost:8766)을 엽니다. 
+브라우저에서 [http://localhost:8766](http://localhost:8766)을 엽니다. 개발용 Swagger 문서는 [http://localhost:8766/docs](http://localhost:8766/docs)에 제공됩니다. `--port 8768`처럼 포트를 바꾸면 문서 주소도 그 포트를 사용합니다.
 
 설치가 끝났다면 `start_local.cmd`를 더블클릭해도 됩니다. 
 
@@ -99,7 +99,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 **① PowerShell 창 A: 운영 패키지 설치 및 서버 실행**
 
 ```powershell
-cd C:\sungwon\image_attractive_visionProject\face_score_web
+cd C:\sungwon\image_attractive_visionProject\face_score_web_add_cropping
 
 # 2.2에서 가상환경을 만든 뒤 실행
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -114,6 +114,8 @@ $env:ENABLED_MODELS = 'densenet121,mobilenetv3,efficientnet_b0'
 ```
 
 [http://localhost:8767](http://localhost:8767)에서 먼저 정상 동작을 확인합니다.
+
+운영 서버의 Swagger와 OpenAPI 문서는 항상 비활성화됩니다. `PUBLIC_ORIGIN`이 비어 있어도 `/docs`, `/redoc`, `/openapi.json`은 제공하지 않습니다.
 
 **② PowerShell 창 B: cloudflared 설치**
 
@@ -159,14 +161,18 @@ $env:PUBLIC_ORIGIN = 'https://실제발급주소.trycloudflare.com'
 
 EfficientNet만 실행하려면 `ENABLED_MODELS=efficientnet_b0`로 설정합니다. `.env.example`은 참고용이며 앱이 `.env`를 자동으로 읽지는 않습니다. PowerShell의 `$env:`로 설정하세요. 로컬 `backend/serve.py`는 `--port`, `--checkpoint` 명령행 옵션을 사용하며 `--checkpoint`는 DenseNet 가중치 경로를 바꿉니다.
 
+FastAPI는 원본 이미지의 `application/octet-stream` 본문을 그대로 읽어 기존 서비스에 전달합니다. `multipart/form-data`나 서버 파일 저장으로 바꾸지 않았으며, 10MB 크기 제한과 30초 업로드 시간 제한을 유지합니다. PyTorch·OpenCV 처리는 FastAPI 이벤트 루프 밖에서 실행하지만, Crop과 예측은 기존처럼 한 번에 하나만 처리합니다.
+
+Uvicorn은 항상 단일 worker로 실행합니다. 모델, 처리 제한, Crop 토큰 서명 비밀값이 worker마다 분리되므로 worker를 늘리면 Crop을 발급한 worker와 예측 worker가 달라져 토큰이 거부될 수 있습니다. Cloudflare Tunnel도 기존 Host·Origin 검사 대상으로 유지하며 프록시 헤더를 신뢰하도록 변경하지 않습니다.
+
 ## 3. 파일 구조
 
 ```text
 image_attractive_visionProject/
 ├── cropping/
 │   └── crop_local_idol_faces_haar.py  # 크롭 기능
-├── DenseNet121/training/model.py     # DenseNet 회귀 모델 정의
-└── face_score_web/
+├── models/DenseNet121/training/model.py # DenseNet 회귀 모델 정의
+└── face_score_web_add_cropping/
     ├── frontend/
     │   ├── index.html               # 이미지·모델 선택, 미리보기, 결과 UI
     │   ├── css/styles.css           # 모바일 폭 기반 화면 스타일
@@ -175,10 +181,15 @@ image_attractive_visionProject/
     │       └── model.js             # Crop / Prediction API 호출
     ├── backend/
     │   ├── __init__.py              # 백엔드 Python 패키지
-    │   ├── serve.py                 # 로컬 HTTP 서버, 기본 8766
-    │   ├── production.py            # Flask + Waitress 운영 서버, 기본 8767
-    │   ├── face_crop.py             # Haar 검출·PNG 생성·토큰 검증
-    │   └── local_model.py           # 모델 로딩·전처리·회귀 추론
+    │   ├── serve.py                 # FastAPI/Uvicorn 로컬 서버, 기본 8766
+    │   ├── production.py            # FastAPI/Uvicorn 운영 서버, 기본 8767
+    │   ├── app.py                   # FastAPI 설정과 서비스·컨트롤러 조립
+    │   ├── config.py                # 공통 경로·제한값
+    │   ├── controllers/             # 공통 FastAPI 요청·응답
+    │   ├── services/                # Crop·토큰 검증·모델 관리·예측 흐름
+    │   ├── repositories/            # 모델 설정·체크포인트 읽기
+    │   ├── inference/               # PyTorch 모델 구성·전처리·추론
+    │   └── common/                  # 업로드 입력 검증·공통 예외
     ├── models/
     │   ├── README.md                # 모델 교체 규칙
     │   ├── densenet121/
@@ -192,6 +203,7 @@ image_attractive_visionProject/
     │       └── EfficientNetAllImage.pt
     ├── requirements-local.txt       # 로컬 실행 패키지
     ├── requirements.txt             # 운영 실행 패키지 포함
+    ├── requirements-test.txt        # 회귀 테스트 패키지
     ├── setup_local.cmd              # 로컬 가상환경 준비
     ├── start_local.cmd              # 로컬 서버 실행
     ├── start_production.ps1          # 운영 서버 실행 보조 스크립트
@@ -199,7 +211,7 @@ image_attractive_visionProject/
     ├── cloudflared.example.yml       # 고정 도메인 Tunnel 예제
     ├── runtime/                     # 실행 로그 등 임시 자료, Git 제외
     └── tests/
-        └── test_backend.py         # Crop·세 모델 추론·로컬/운영 API 회귀 테스트
+        └── test_structure_refactor.py # 계층 분리 후 기존 동작 회귀 테스트
 ```
 
 학습용 이미지·라벨·노트북은 웹 추론에 필요하지 않습니다. 모델 교체 시 해당 `models/` 폴더의 `.pt`를 바꾸고 파일명이 달라지면 `config.json`의 `checkpoint`를 수정한 뒤 서버를 재시작합니다. 아키텍처·전처리·출력층 계약도 같아야 합니다. [모델 관리 안내](models/README.md)
@@ -214,9 +226,9 @@ image_attractive_visionProject/
 | Pillow | `12.3.0` | 이미지 decode, EXIF 보정, RGB, PNG 생성 |
 | opencv-python-headless | `4.13.0.92` | Haar Cascade 얼굴 검출, 히스토그램 평활화 |
 | NumPy | OpenCV/torchvision 의존성으로 설치 | PIL/OpenCV 배열 변환 |
-| Flask | `3.1.2` | 운영용 API·정적 파일 라우팅 |
-| Waitress | `3.0.2` | Windows 운영 WSGI 서버 |
-| Python 표준 라이브러리 | 별도 설치 없음 | 로컬 HTTP 서버, JSON, HMAC, threading |
+| FastAPI | `0.162.0` | API·정적 파일 라우팅과 개발용 Swagger 문서 |
+| Uvicorn | `0.54.0` | Windows ASGI 서버 |
+| Python 표준 라이브러리 | 별도 설치 없음 | JSON, HMAC, threading |
 | 브라우저 API | 별도 패키지 없음 | Fetch, Blob, Canvas, getUserMedia, AbortController |
 | cloudflared | 별도 프로그램 | Cloudflare와 Windows 서버 사이의 터널 |
 
@@ -302,7 +314,7 @@ X-Crop-Token: <Crop 응답에서 받은 토큰>
 
 ### 오류 응답
 
-대부분의 앱 오류는 `{"error": "안내 메시지"}` 형식입니다. Waitress나 Cloudflare가 앱에 전달하기 전에 거절한 요청은 다른 형식일 수 있습니다.
+대부분의 앱 오류는 `{"error": "안내 메시지"}` 형식입니다. Uvicorn이나 Cloudflare가 앱에 전달하기 전에 거절한 요청은 다른 형식일 수 있습니다.
 
 | HTTP 상태 | 의미 |
 |---|---|
@@ -312,20 +324,21 @@ X-Crop-Token: <Crop 응답에서 받은 토큰>
 | `413` | 파일 크기 초과 (로컬 서버는 빈 본문도 이 코드로 거절) |
 | `415` | 잘못된 요청 Content-Type |
 | `422` | 얼굴 검출 실패 |
-| `429` | 운영 서버가 다른 Crop/추론 요청을 처리 중 |
+| `429` | 다른 Crop/추론 요청을 처리 중 |
 | `500` | 내부 이미지 처리/추론 오류 |
 
 
 
 ## 백엔드 정리 및 검증
 
-서버 코드는 `backend/`, 화면 코드는 `frontend/`, 모델 파일은 `models/`에 분리되어 있습니다. `backend` 파일을 직접 실행하지 말고 `face_score_web` 폴더에서 `python -m backend.serve` 또는 `python -m backend.production`으로 실행하세요. 기존 시작 스크립트도 이 방식으로 변경했습니다.
+서버 코드는 `backend/`, 화면 코드는 `frontend/`, 모델 파일은 `models/`에 분리되어 있습니다. `backend` 파일을 직접 실행하지 말고 `face_score_web_add_cropping` 폴더에서 `python -m backend.serve` 또는 `python -m backend.production`으로 실행하세요. 기존 시작 스크립트도 이 방식으로 변경했습니다.
 
 과거 정적 배포 산출물 `dist/`, 연결된 `.openai/hosting.json`, 사용하지 않는 `manifest.template.json` 및 불필요한 `.gitkeep`을 제거했습니다. 현재 Cloudflare Tunnel은 운영 Python 서버로 연결하므로 이 파일들이 필요하지 않습니다.
 
 ```powershell
-cd C:\sungwon\image_attractive_visionProject\face_score_web
+cd C:\sungwon\image_attractive_visionProject\face_score_web_add_cropping
+.\.venv\Scripts\python.exe -m pip install -r requirements-test.txt
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-테스트는 세 모델 파일과 프로젝트의 `test_photo_9/F_2.png`를 사용합니다. 운영 테스트에는 `requirements.txt` 설치가 필요합니다.
+테스트는 서비스·공통 검증·FastAPI HTTP 계약을 가짜 Registry로 확인하므로 모델 가중치를 다시 로드하지 않습니다. 실제 서버 스모크 테스트에는 모델 파일과 해당 실행용 requirements 설치가 필요합니다.

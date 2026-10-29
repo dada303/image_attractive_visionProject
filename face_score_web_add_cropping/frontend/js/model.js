@@ -18,7 +18,9 @@ async function requestImage(route, blob, filename, { signal, token } = {}) {
   return response;
 }
 
-export async function cropImage(blob, filename, signal) {
+
+export async function cropImage(blob, filename, signal)
+{
   const response = await requestImage('/api/crop', blob, filename, { signal });
   const token = response.headers.get('X-Crop-Token');
   const cropped = await response.blob();
@@ -26,7 +28,9 @@ export async function cropImage(blob, filename, signal) {
   return { blob: cropped, token, faceCount: Number(response.headers.get('X-Face-Count') || 1) };
 }
 
-export async function predictImage(blob, modelId, token, signal) {
+
+export async function predictImage(blob, modelId, token, signal)
+{
   const response = await requestImage('/api/predict?model=' + encodeURIComponent(modelId), blob, 'face-crop.png', { token, signal });
   const result = await response.json();
   if (!Number.isFinite(result.score)) throw new Error('유효한 점수가 아닙니다.');

@@ -6,7 +6,7 @@ _**현대오토에버 SW스쿨 스마트팩토리 4기 1차 비전 프로젝트*
 - 5182 장의 동양인 얼굴 이미지를 5가지 CNN 딥러닝 모델에 학습
 - 가장 성과가 좋은 세가지 모델을 가지고 매력도 평가 서비스 제공
 - HTML + CSS + JavaScript 를 이용해 매력도 평가 서비스 UI 를 만듬
-- Waitress + Flask + CloudFlare 을 이용해서 웹 서비스로 제공
+- Uvicorn + FastAPI + Cloudflare를 이용해서 웹 서비스로 제공
 
 
 ## 로컬 실행 방법
@@ -85,7 +85,7 @@ flowchart TD
     WEB["Frontend · HTML / CSS / JavaScript<br/>파일 업로드 · 카메라 촬영"]
     CROP["Backend · Python / OpenCV<br/>Haar Cascade 얼굴 검출 · Crop"]
     PREVIEW["Crop 미리보기 · PNG / Blob"]
-    API["추론 API · Flask / Waitress<br/>Crop 이미지 검증"]
+    API["추론 API · FastAPI / Uvicorn<br/>Crop 이미지 검증"]
     MODEL["AI 모델 · PyTorch / torchvision<br/>DenseNet121 / MobileNetV3 / EfficientNet-B0"]
     RESULT["예측 결과 · JSON<br/>1~5점 화면 표시"]
 
@@ -103,8 +103,8 @@ flowchart TD
 | 프런트엔드 | HTML, CSS, JavaScript | 이미지 선택, 모델 선택, Crop 미리보기, 점수 표시 |
 | 카메라 촬영 | getUserMedia, Canvas API | 카메라 접근 및 촬영 이미지 생성 |
 | 서버 통신 | Fetch API | Crop·추론 요청과 결과 수신 |
-| 백엔드 | Python, Flask | 이미지 수신, 검증, API 처리 |
-| 운영 서버 | Waitress | Windows에서 웹 애플리케이션 실행 |
+| 백엔드 | Python, FastAPI | 이미지 수신, 검증, API 처리 |
+| 운영 서버 | Uvicorn | Windows에서 웹 애플리케이션 실행 |
 | 얼굴 검출 | OpenCV, Haar Cascade | 얼굴 검출 및 가장 큰 얼굴 영역 선택 |
 | 이미지 처리 | Pillow, NumPy | EXIF 보정, RGB 변환, Crop·PNG 생성 |
 | 모델 추론 | PyTorch, torchvision | 학습된 모델 로딩, 전처리 및 점수 예측 |

@@ -1,1 +1,1 @@
-"""HTTP APIs, face cropping, and model inference for face_score_web_add_cropping."""
+"""얼굴 Crop과 점수 예측 웹 애플리케이션의 백엔드 패키지."""

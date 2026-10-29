@@ -1,0 +1,2 @@
+# API regression tests; install after requirements-local.txt or requirements.txt.
+httpx==0.28.1
